@@ -21,6 +21,12 @@
         "hooks": [
           {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/saved.sh", "timeout": 5}
         ]
+      },
+      {
+        "matcher": "mcp__.*__set_chat_project$",
+        "hooks": [
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/picked.sh", "timeout": 5}
+        ]
       }
     ],
     "Stop": [

@@ -1,7 +1,7 @@
 {
   "name": "seamtrail",
-  "description": "SeamTrail, your team's shared memory, in Claude Code: the project's context (decisions, drift, your tickets) at chat start, a reminder at turn end to save what was decided, and each chat's id on its SeamTrail calls so SeamTrail knows which chat a note or question came from.",
-  "version": "0.4.1",
+  "description": "SeamTrail, your team's shared memory, in Claude Code: each chat asks once which SeamTrail project it is for, then gets that project's context (decisions, drift, your tickets), saves only into it, and is reminded at turn end to save what was decided.",
+  "version": "0.5.0",
   "author": {
     "name": "SeamTrail"
   },

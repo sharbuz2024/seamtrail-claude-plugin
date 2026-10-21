@@ -1,5 +1,6 @@
 #!/bin/sh
-# SeamTrail · turn end (SEAM-215). Only in a folder SeamTrail matched to a project at chat start (start.sh): when
+# SeamTrail · turn end (SEAM-215, SEAM-228). Only in a chat with a SeamTrail project — the one its person picked, known
+# at chat start (start.sh) or when they pick it (picked.sh); an older SeamTrail matched it from the folder: when
 # nothing was saved to SeamTrail this turn, the agent is asked once to remember what was decided, learned or
 # blocked — into that project, named — or to finish if nothing was. Two projects matched, or the note is about
 # another one: the agent tells from the conversation, or leaves the project out and SeamTrail picks it or asks back
@@ -28,7 +29,10 @@ done_="If none of that happened, finish now without saying anything more."
 if [ "$project" = "ask" ]; then
   reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now: $how. This folder belongs to more than one SeamTrail project: pass the projectId the conversation shows; if you cannot tell, leave it out and SeamTrail picks it, or answers with a short list to choose from. $done_"
 else
-  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now with projectId $project (the project “$name”): $how. If it is about another project, pass that one; if you cannot tell which, leave projectId out and SeamTrail picks it, or answers with a short list. $done_"
+  # A project picked during the chat (picked.sh) is known by its id only.
+  label=""
+  [ -n "$name" ] && label=" (the project “$name”)"
+  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now with projectId $project$label: $how. If it is about another project, pass that one; if you cannot tell which, leave projectId out and SeamTrail picks it, or answers with a short list. $done_"
 fi
 printf '{"decision":"block","reason":"%s"}\n' "$reason"
 exit 0

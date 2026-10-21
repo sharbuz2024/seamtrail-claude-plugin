@@ -1,9 +1,9 @@
 #!/bin/sh
-# SeamTrail · chat start (SEAM-215, SEAM-230). Registers this chat with SeamTrail (its id, name and folder), so the
-# chat id the guard adds to SeamTrail calls is believed, and hands the agent this folder's project context: SeamTrail matches the git
-# remote and branch to the person's project and answers with plain text, which Claude Code adds to the chat.
-# It also keeps, on this computer, which project it found, so the turn-end check (stop.sh) names that project —
-# or asks which one, or stays quiet when the folder is no SeamTrail project.
+# SeamTrail · chat start (SEAM-215, SEAM-230, SEAM-228). Registers this chat with SeamTrail (its id, name and folder), so
+# the chat id the guard adds to SeamTrail calls is believed. SeamTrail answers with plain text, which Claude Code adds to
+# the chat: the context of the project the person picked for this chat, or, not picked yet, the question Claude asks at
+# the first message ("Which SeamTrail project is this chat for?" — the git remote and branch only order its options).
+# It also keeps, on this computer, the chat's project, so the turn-end check (stop.sh) names it — or stays quiet.
 # Silent on any failure — a hook must never get in the way.
 
 token="${CLAUDE_PLUGIN_OPTION_SEAMTRAIL_TOKEN:-$SEAMTRAIL_TOKEN}"
