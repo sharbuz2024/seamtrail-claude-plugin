@@ -1,0 +1,14 @@
+{
+  "name": "seamtrail",
+  "description": "SeamTrail for Claude Code: your team's shared memory at chat start, and decisions saved as you work.",
+  "owner": {
+    "name": "SeamTrail"
+  },
+  "plugins": [
+    {
+      "name": "seamtrail",
+      "source": "./plugins/seamtrail",
+      "description": "SeamTrail in Claude Code: your project's shared memory at chat start, and a reminder to save decisions at turn end."
+    }
+  ]
+}

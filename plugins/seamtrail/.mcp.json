@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "seamtrail": {
+      "type": "http",
+      "url": "${user_config.seamtrail_url}",
+      "headers": { "Authorization": "Bearer ${user_config.seamtrail_token}" }
+    }
+  }
+}
