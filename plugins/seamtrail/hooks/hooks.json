@@ -3,7 +3,22 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/start.sh", "timeout": 15 }
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/start.sh", "timeout": 15}
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "mcp_tool", "server": "plugin:seamtrail:seamtrail", "tool": "plugin_chat", "input": {"chatId": "${session_id}", "chatName": "${session_title}", "folder": "${cwd}"}, "timeout": 10}
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__plugin_seamtrail_seamtrail__.*",
+        "hooks": [
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/guard.sh", "timeout": 5}
         ]
       }
     ],
@@ -11,14 +26,14 @@
       {
         "matcher": "mcp__.*__(remember|resolve|settle_question|mark_standing|widen_memory)$",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/saved.sh", "timeout": 5 }
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/saved.sh", "timeout": 5}
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/stop.sh", "timeout": 5 }
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/stop.sh", "timeout": 5}
         ]
       }
     ]
