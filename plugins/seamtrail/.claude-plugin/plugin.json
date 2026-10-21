@@ -5,7 +5,7 @@
   "author": {
     "name": "SeamTrail"
   },
-  "homepage": "https://docs.seamtrail.com/claude-code-plugin",
+  "homepage": "https://docs.seamtrail.com/connect-an-ai-assistant#claude-code-plugin-hooks",
   "userConfig": {
     "seamtrail_token": {
       "type": "string",
