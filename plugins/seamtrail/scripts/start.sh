@@ -1,5 +1,6 @@
 #!/bin/sh
-# SeamTrail · chat start (SEAM-215). Hands the agent this folder's project context: SeamTrail matches the git
+# SeamTrail · chat start (SEAM-215, SEAM-230). Registers this chat with SeamTrail (its id, name and folder), so the
+# chat id the guard adds to SeamTrail calls is believed, and hands the agent this folder's project context: SeamTrail matches the git
 # remote and branch to the person's project and answers with plain text, which Claude Code adds to the chat.
 # It also keeps, on this computer, which project it found, so the turn-end check (stop.sh) names that project —
 # or asks which one, or stays quiet when the folder is no SeamTrail project.
@@ -11,6 +12,8 @@ input=$(cat)
 data="$CLAUDE_PLUGIN_DATA"
 
 session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+# SEAM-230: the chat's custom name, when it has one, so SeamTrail can show the person which chat a note came from.
+title=$(printf '%s' "$input" | grep -o '"session_title"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 # A new (or resumed) chat starts clean: nothing saved yet, no project known yet.
 if [ -n "$data" ] && [ -n "$session" ]; then rm -f "$data/saved-$session" "$data/project-$session"; fi
 
@@ -24,6 +27,9 @@ if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   -H "Authorization: Bearer $token" \
   --data-urlencode "remote=$remote" \
   --data-urlencode "branch=$branch" \
+  --data-urlencode "chat=$session" \
+  --data-urlencode "chatName=$title" \
+  --data-urlencode "folder=$dir" \
   -D "$tmp/headers" -o "$tmp/body" 2>/dev/null; then
   cat "$tmp/body"
   project=$(grep -i '^x-seamtrail-project:' "$tmp/headers" | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')

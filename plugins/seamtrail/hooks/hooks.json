@@ -7,16 +7,9 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {"type": "mcp_tool", "server": "plugin:seamtrail:seamtrail", "tool": "plugin_chat", "input": {"chatId": "${session_id}", "chatName": "${session_title}", "folder": "${cwd}"}, "timeout": 10}
-        ]
-      }
-    ],
     "PreToolUse": [
       {
-        "matcher": "mcp__plugin_seamtrail_seamtrail__.*",
+        "matcher": "mcp__.*",
         "hooks": [
           {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/guard.sh", "timeout": 5}
         ]
