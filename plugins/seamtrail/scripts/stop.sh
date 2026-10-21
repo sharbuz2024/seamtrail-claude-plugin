@@ -1,8 +1,9 @@
 #!/bin/sh
 # SeamTrail · turn end (SEAM-215). Only in a folder SeamTrail matched to a project at chat start (start.sh): when
 # nothing was saved to SeamTrail this turn, the agent is asked once to remember what was decided, learned or
-# blocked — into that project, named — or to finish if nothing was. Two projects matched: it asks which first.
-# No project: never asks. The agent saves; no chat text is sent anywhere by this hook.
+# blocked — into that project, named — or to finish if nothing was. Two projects matched, or the note is about
+# another one: the agent tells from the conversation, or leaves the project out and SeamTrail picks it or asks back
+# (SEAM-219). No project: never asks. The agent saves; no chat text is sent anywhere by this hook.
 
 input=$(cat)
 data="$CLAUDE_PLUGIN_DATA"
@@ -25,9 +26,9 @@ what="If in this turn your person decided something, learned a fact, hit or clea
 how="one plain sentence each, with kind and subject, a decision with its reason"
 done_="If none of that happened, finish now without saying anything more."
 if [ "$project" = "ask" ]; then
-  reason="SeamTrail: nothing was saved this turn. $what, ask your person which SeamTrail project it belongs to (this folder belongs to more than one; never guess), then call the SeamTrail remember tool with that projectId: $how. $done_"
+  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now: $how. This folder belongs to more than one SeamTrail project: pass the projectId the conversation shows; if you cannot tell, leave it out and SeamTrail picks it, or answers with a short list to choose from. $done_"
 else
-  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now with projectId $project (the project “$name”): $how. If it is about another project, ask your person which one first; never guess. $done_"
+  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now with projectId $project (the project “$name”): $how. If it is about another project, pass that one; if you cannot tell which, leave projectId out and SeamTrail picks it, or answers with a short list. $done_"
 fi
 printf '{"decision":"block","reason":"%s"}\n' "$reason"
 exit 0
