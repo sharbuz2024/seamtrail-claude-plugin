@@ -2,13 +2,15 @@
   "name": "seamtrail",
   "description": "SeamTrail, your team's shared memory, in Claude Code: the project's context (decisions, drift, your tickets) at chat start, and a reminder at turn end to save what was decided.",
   "version": "0.1.0",
-  "author": { "name": "SeamTrail" },
+  "author": {
+    "name": "SeamTrail"
+  },
   "homepage": "https://docs.seamtrail.com/claude-code-plugin",
   "userConfig": {
     "seamtrail_token": {
       "type": "string",
-      "title": "SeamTrail key",
-      "description": "Make one in SeamTrail: Settings → Agents · MCP connector → Make a key. It works as you; remove it there any time.",
+      "title": "SeamTrail token",
+      "description": "Make one in SeamTrail: Settings → Agents · MCP connector → Make a token. It works as you; remove it there any time.",
       "sensitive": true,
       "required": true
     },

@@ -7,7 +7,7 @@ One plugin that connects Claude Code to SeamTrail, your team's shared memory of 
 
 ## Install
 
-1. In SeamTrail: **Settings → Agents · MCP connector → Make a key**. Name it "Claude Code plugin".
+1. In SeamTrail: **Settings → Agents · MCP connector → Make a token**. Name it "Claude Code plugin".
 2. In Claude Code:
 
    ```
@@ -15,7 +15,7 @@ One plugin that connects Claude Code to SeamTrail, your team's shared memory of 
    /plugin install seamtrail@seamtrail
    ```
 
-3. Paste the key when Claude Code asks for it. It is kept in your computer's secure store.
+3. Paste the token when Claude Code asks for it. It is kept in your computer's secure store.
 
 If SeamTrail is already connected to Claude Code another way, remove that connection, or Claude sees every SeamTrail tool twice.
 
