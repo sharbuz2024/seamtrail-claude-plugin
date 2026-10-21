@@ -3,7 +3,7 @@
 One plugin that connects Claude Code to SeamTrail, your team's shared memory of its projects.
 
 - **At chat start**, Claude Code gets the project this folder works on (matched from its git remote and the ticket in the branch name): where it stands, decisions with reasons, drift, and your own tickets and news.
-- **At turn end**, when nothing was saved to SeamTrail, Claude is asked once to remember what was decided, learned or blocked, or to finish if nothing was. Claude saves through SeamTrail's own tools; the hooks send no chat text anywhere.
+- **At turn end**, when nothing was saved to SeamTrail, Claude is asked once to remember what was decided, learned or blocked into that project (named, with its id), or to finish if nothing was. If the folder belongs to two projects, Claude asks you which first. If it belongs to none, Claude is never asked. Claude saves through SeamTrail's own tools; the hooks send no chat text anywhere.
 
 ## Install
 

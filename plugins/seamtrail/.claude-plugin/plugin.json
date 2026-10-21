@@ -1,7 +1,7 @@
 {
   "name": "seamtrail",
   "description": "SeamTrail, your team's shared memory, in Claude Code: the project's context (decisions, drift, your tickets) at chat start, and a reminder at turn end to save what was decided.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "SeamTrail"
   },
