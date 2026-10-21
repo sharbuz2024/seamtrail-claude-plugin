@@ -9,7 +9,7 @@ One plugin that connects Claude Code to SeamTrail, your team's shared memory of 
 
 ## Install
 
-1. In SeamTrail: **Settings → Agents · MCP connector → Make a token**. Name it "Claude Code plugin".
+1. In SeamTrail: **Settings → AI assistants → A tool that cannot sign in? → Make a token**. Name it "Claude Code plugin".
 2. In Claude Code:
 
    ```

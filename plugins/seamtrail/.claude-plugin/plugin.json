@@ -10,7 +10,7 @@
     "seamtrail_token": {
       "type": "string",
       "title": "SeamTrail token",
-      "description": "Make one in SeamTrail: Settings → Agents · MCP connector → Make a token. It works as you; remove it there any time.",
+      "description": "Make one in SeamTrail: Settings → AI assistants → A tool that cannot sign in? → Make a token. It works as you; remove it there any time.",
       "sensitive": true,
       "required": true
     },
