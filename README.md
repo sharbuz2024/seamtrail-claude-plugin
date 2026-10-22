@@ -13,13 +13,15 @@ One plugin that connects Claude Code to SeamTrail, your team's shared memory of 
 
 ## Install
 
-1. In SeamTrail: **Settings → Agents · MCP connector → Connect**, pick **Claude Code + hooks** and follow the steps: they make the token for you (or **Agents → Make a token**, named "Claude Code plugin").
-2. In Claude Code:
+1. In SeamTrail: **Settings → Agents · MCP connector → Plugins → Claude Code** and follow the steps there. The token comes from **Token → Make a token**; name it "Claude Code plugin".
+2. In a terminal, inside your repository's folder, so the whole team gets it:
 
    ```
-   /plugin marketplace add sharbuz2024/seamtrail-claude-plugin
-   /plugin install seamtrail@seamtrail
+   claude plugin marketplace add sharbuz2024/seamtrail-claude-plugin
+   claude plugin install seamtrail@seamtrail --scope project
    ```
+
+   This turns the plugin on for the repository in `.claude/settings.json`: commit that file, and each teammate runs the same install command once. For yourself only, leave out `--scope project`.
 
 3. Paste the token when Claude Code asks for it. It is kept in your computer's secure store.
 

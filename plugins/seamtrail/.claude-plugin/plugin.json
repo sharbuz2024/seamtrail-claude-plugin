@@ -10,7 +10,7 @@
     "seamtrail_token": {
       "type": "string",
       "title": "SeamTrail token",
-      "description": "Make one in SeamTrail: Settings → Agents · MCP connector → Connect → Claude Code + hooks (the steps make it), or Agents → Make a token. It works as you; revoke it there any time.",
+      "description": "Make one in SeamTrail: Settings → Agents · MCP connector → Token → Make a token (the Plugins tab's Claude Code steps take you there). It works as you; revoke it there any time.",
       "sensitive": true,
       "required": true
     },
