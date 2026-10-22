@@ -1,0 +1,62 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {"name": "seamtrail-start", "type": "command", "command": "sh \"${extensionPath}/scripts/start.sh\"", "timeout": 15000}
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {"name": "seamtrail-tickets-person", "type": "command", "command": "sh \"${extensionPath}/scripts/tickets.sh\" person", "timeout": 5000},
+          {"name": "seamtrail-message", "type": "command", "command": "sh \"${extensionPath}/scripts/message.sh\"", "timeout": 6000}
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "^mcp_",
+        "hooks": [
+          {"name": "seamtrail-guard", "type": "command", "command": "sh \"${extensionPath}/scripts/guard.sh\"", "timeout": 5000}
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "^mcp_.+_(remember|resolve|settle_question|widen_memory)$",
+        "hooks": [
+          {"name": "seamtrail-saved", "type": "command", "command": "sh \"${extensionPath}/scripts/saved.sh\"", "timeout": 5000}
+        ]
+      },
+      {
+        "matcher": "^mcp_.+_(ask_seamtrail|undo_change)$",
+        "hooks": [
+          {"name": "seamtrail-saved-change", "type": "command", "command": "sh \"${extensionPath}/scripts/saved.sh\" change", "timeout": 5000}
+        ]
+      },
+      {
+        "matcher": "^mcp_.+_set_chat_project$",
+        "hooks": [
+          {"name": "seamtrail-picked", "type": "command", "command": "sh \"${extensionPath}/scripts/picked.sh\"", "timeout": 5000}
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          {"name": "seamtrail-stop", "type": "command", "command": "sh \"${extensionPath}/scripts/stop.sh\"", "timeout": 5000},
+          {"name": "seamtrail-tickets-agent", "type": "command", "command": "sh \"${extensionPath}/scripts/tickets.sh\" agent", "timeout": 5000}
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "hooks": [
+          {"name": "seamtrail-compress", "type": "command", "command": "sh \"${extensionPath}/scripts/start.sh\"", "timeout": 15000}
+        ]
+      }
+    ]
+  }
+}
