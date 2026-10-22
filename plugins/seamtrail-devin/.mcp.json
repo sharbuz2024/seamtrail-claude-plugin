@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "seamtrail": {
+      "url": "https://mcp.seamtrail.com/mcp",
+      "transport": "http"
+    }
+  }
+}
