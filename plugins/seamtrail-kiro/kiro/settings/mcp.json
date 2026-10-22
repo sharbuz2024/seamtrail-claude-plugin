@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "SeamTrail": {
+      "url": "https://mcp.seamtrail.com/mcp",
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

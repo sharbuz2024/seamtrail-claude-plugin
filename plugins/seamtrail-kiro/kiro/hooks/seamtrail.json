@@ -1,0 +1,50 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "SeamTrail: chat start",
+      "description": "Registers this chat with SeamTrail and hands the agent the project's context, or the question which SeamTrail project the chat is for.",
+      "trigger": "SessionStart",
+      "action": { "type": "command", "command": "sh .kiro/seamtrail/start.sh" },
+      "timeout": 15
+    },
+    {
+      "name": "SeamTrail: at each message",
+      "description": "Hands the agent what is new on the chat's work and the latest memory about the tickets the message names. Sends only the chat id and the ticket keys, never the message.",
+      "trigger": "UserPromptSubmit",
+      "action": { "type": "command", "command": "sh .kiro/seamtrail/message.sh" },
+      "timeout": 20
+    },
+    {
+      "name": "SeamTrail: note saved",
+      "description": "Marks the turn saved after remember, resolve, settle_question or widen_memory. Nothing leaves the computer.",
+      "trigger": "PostToolUse",
+      "matcher": "[Ss]eam[Tt]rail.*[_/](remember|resolve|settle_question|widen_memory)$",
+      "action": { "type": "command", "command": "sh .kiro/seamtrail/saved.sh" },
+      "timeout": 5
+    },
+    {
+      "name": "SeamTrail: change made",
+      "description": "Marks the turn saved when ask_seamtrail or undo_change really changed something. Nothing leaves the computer.",
+      "trigger": "PostToolUse",
+      "matcher": "[Ss]eam[Tt]rail.*[_/](ask_seamtrail|undo_change)$",
+      "action": { "type": "command", "command": "sh .kiro/seamtrail/saved.sh change" },
+      "timeout": 5
+    },
+    {
+      "name": "SeamTrail: project picked",
+      "description": "Keeps the SeamTrail project picked for this chat, for the turn-end reminder. Nothing leaves the computer.",
+      "trigger": "PostToolUse",
+      "matcher": "[Ss]eam[Tt]rail.*[_/]set_chat_project$",
+      "action": { "type": "command", "command": "sh .kiro/seamtrail/picked.sh" },
+      "timeout": 5
+    },
+    {
+      "name": "SeamTrail: turn end",
+      "description": "When nothing was saved to SeamTrail this turn, asks the agent once to remember what was decided, into this chat's project.",
+      "trigger": "Stop",
+      "action": { "type": "command", "command": "sh .kiro/seamtrail/stop.sh" },
+      "timeout": 5
+    }
+  ]
+}
