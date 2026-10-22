@@ -31,6 +31,12 @@
         ]
       },
       {
+        "matcher": "mcp__.*__(ask_seamtrail|undo_change)$",
+        "hooks": [
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/saved.sh change", "timeout": 5}
+        ]
+      },
+      {
         "matcher": "mcp__.*__set_chat_project$",
         "hooks": [
           {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/picked.sh", "timeout": 5}

@@ -1,10 +1,12 @@
 #!/bin/sh
 # SeamTrail · turn end (SEAM-215, SEAM-228). Only in a chat with a SeamTrail project — the one its person picked, known
 # at chat start (start.sh) or when they pick it (picked.sh); an older SeamTrail matched it from the folder: when
-# nothing was saved to SeamTrail this turn, the agent is asked once to remember what was decided, learned or
-# blocked — into that project, named — or to finish if nothing was. Two projects matched, or the note is about
-# another one: the agent tells from the conversation, or leaves the project out and SeamTrail picks it or asks back
-# (SEAM-219). No project: never asks. The agent saves; no chat text is sent anywhere by this hook.
+# nothing was saved to SeamTrail this turn (a note, or a change SeamTrail made — saved.sh), the agent is asked once to
+# remember what was decided, learned or blocked — into that project, named — or to finish if nothing was. A chat
+# saves only into its own project (SEAM-228), so a note about another project goes to the person, never into that
+# project. Two projects matched (an older SeamTrail): the agent tells from the conversation, or leaves the project out
+# and SeamTrail picks it or asks back (SEAM-219). No project: never asks. The agent saves; no chat text is sent
+# anywhere by this hook.
 
 input=$(cat)
 data="$CLAUDE_PLUGIN_DATA"
@@ -32,7 +34,7 @@ else
   # A project picked during the chat (picked.sh) is known by its id only.
   label=""
   [ -n "$name" ] && label=" (the project “$name”)"
-  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now with projectId $project$label: $how. If it is about another project, pass that one; if you cannot tell which, leave projectId out and SeamTrail picks it, or answers with a short list. $done_"
+  reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now with projectId $project$label: $how. This chat saves only into that project: if something belongs to another project, tell your person instead (they can switch this chat's project). $done_"
 fi
 printf '{"decision":"block","reason":"%s"}\n' "$reason"
 exit 0

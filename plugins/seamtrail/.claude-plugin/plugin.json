@@ -1,7 +1,7 @@
 {
   "name": "seamtrail",
   "description": "SeamTrail, your team's shared memory, in Claude Code: each chat asks once which SeamTrail project it is for, then gets that project's context, the news that touches its own work, and at every message the latest memory about the tickets you name — from Claude's short summary of the chat's work and the ticket numbers in it, never the conversation — saves only into it, and is reminded at turn end to save what was decided.",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "author": {
     "name": "SeamTrail"
   },
