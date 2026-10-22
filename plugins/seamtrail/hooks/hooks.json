@@ -25,7 +25,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__.*__(remember|resolve|settle_question|mark_standing|widen_memory)$",
+        "matcher": "mcp__.*__(remember|resolve|settle_question|widen_memory)$",
         "hooks": [
           {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/saved.sh", "timeout": 5}
         ]
