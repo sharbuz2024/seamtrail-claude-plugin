@@ -1,0 +1,16 @@
+{
+  "name": "seamtrail",
+  "owner": {
+    "name": "SeamTrail"
+  },
+  "metadata": {
+    "description": "SeamTrail for Cursor: your team's shared memory at chat start, and decisions saved as you work."
+  },
+  "plugins": [
+    {
+      "name": "seamtrail-cursor",
+      "source": "./plugins/seamtrail-cursor",
+      "description": "SeamTrail in Cursor: your project's shared memory at chat start, and a reminder to save decisions at turn end."
+    }
+  ]
+}
