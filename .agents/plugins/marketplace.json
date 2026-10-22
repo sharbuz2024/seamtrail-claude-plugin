@@ -1,0 +1,20 @@
+{
+  "name": "seamtrail",
+  "interface": {
+    "displayName": "SeamTrail"
+  },
+  "plugins": [
+    {
+      "name": "seamtrail",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seamtrail-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

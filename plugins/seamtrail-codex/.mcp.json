@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "seamtrail": {
+      "type": "streamable-http",
+      "url": "https://mcp.seamtrail.com/mcp",
+      "bearer_token_env_var": "SEAMTRAIL_TOKEN"
+    }
+  }
+}

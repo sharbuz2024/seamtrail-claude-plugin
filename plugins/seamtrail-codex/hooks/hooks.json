@@ -1,0 +1,62 @@
+{
+  "description": "SeamTrail: registers the chat and hands Codex its project's memory at chat start and at each message, adds the chat id to SeamTrail calls, and asks once at turn end to save what was decided. Only ids, ticket numbers, the folder and its git remote and branch leave the computer, never the conversation.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${PLUGIN_ROOT}/scripts/start.sh\"",
+            "timeout": 15,
+            "statusMessage": "SeamTrail: loading this chat's project memory",
+            "additionalContextLimit": 4000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/tickets.sh\" person", "timeout": 5},
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/message.sh\"", "timeout": 6}
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "(?i)^mcp__.*seamtrail.*__",
+        "hooks": [
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/guard.sh\"", "timeout": 5}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "(?i)^mcp__.*seamtrail.*__(remember|resolve|settle_question|widen_memory)$",
+        "hooks": [
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/saved.sh\"", "timeout": 5}
+        ]
+      },
+      {
+        "matcher": "(?i)^mcp__.*seamtrail.*__(ask_seamtrail|undo_change)$",
+        "hooks": [
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/saved.sh\" change", "timeout": 5}
+        ]
+      },
+      {
+        "matcher": "(?i)^mcp__.*seamtrail.*__set_chat_project$",
+        "hooks": [
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/picked.sh\"", "timeout": 5}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/stop.sh\"", "timeout": 5},
+          {"type": "command", "command": "sh \"${PLUGIN_ROOT}/scripts/tickets.sh\" agent", "timeout": 5}
+        ]
+      }
+    ]
+  }
+}
