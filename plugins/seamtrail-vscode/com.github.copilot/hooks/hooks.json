@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/start.sh || true", "powershell": "exit 0", "timeoutSec": 15}
+    ],
+    "userPromptSubmitted": [
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/tickets.sh person || true", "powershell": "exit 0", "timeoutSec": 5}
+    ],
+    "preToolUse": [
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/guard.sh || true", "powershell": "exit 0", "timeoutSec": 5}
+    ],
+    "postToolUse": [
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/saved.sh || true", "powershell": "exit 0", "timeoutSec": 5},
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/saved.sh change || true", "powershell": "exit 0", "timeoutSec": 5},
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/picked.sh || true", "powershell": "exit 0", "timeoutSec": 5}
+    ],
+    "agentStop": [
+      {"type": "command", "bash": "sh \"${PLUGIN_ROOT}\"/com.github.copilot/scripts/stop.sh || true", "powershell": "exit 0", "timeoutSec": 5}
+    ]
+  }
+}
