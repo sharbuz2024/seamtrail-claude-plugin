@@ -19,12 +19,6 @@
       "title": "SeamTrail address",
       "description": "Leave it as it is, unless your company runs its own SeamTrail.",
       "default": "https://mcp.seamtrail.com/mcp"
-    },
-    "share_chat_work": {
-      "type": "boolean",
-      "title": "Share what each chat works on",
-      "description": "Claude's short summary of the work and discussion in the chat, and the ticket numbers in its last few messages — never the conversation itself — so SeamTrail brings each chat only the news about its own work. SeamTrail keeps them about a day and never shows them to anyone. Turn off to share none.",
-      "default": true
     }
   }
 }

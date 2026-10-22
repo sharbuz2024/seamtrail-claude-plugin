@@ -3,12 +3,10 @@
 # in the person's last 3 messages (`tickets.sh person`, from the message hook's `prompt`) and in Claude's last 3 replies
 # (`tickets.sh claude`, from the turn-end hook's `last_assistant_message`) — the numbers only, never any text. The guard
 # (guard.sh) sends them with the chat's SeamTrail calls, beside Claude's own one-line "working on", so SeamTrail can
-# bring the chat the news about its work. Off when the plugin's "share what each chat works on" option is off.
-# Silent on any failure.
+# bring the chat the news about its work. Silent on any failure.
 
 role="$1"
 [ "$role" = person ] || [ "$role" = claude ] || exit 0
-[ "$CLAUDE_PLUGIN_OPTION_SHARE_CHAT_WORK" = false ] && exit 0
 data="$CLAUDE_PLUGIN_DATA"
 [ -n "$data" ] || exit 0
 input=$(cat)
