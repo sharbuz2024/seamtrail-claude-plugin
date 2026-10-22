@@ -10,7 +10,8 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/tickets.sh person", "timeout": 5}
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/tickets.sh person", "timeout": 5},
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/message.sh", "timeout": 6}
         ]
       }
     ],
