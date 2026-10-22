@@ -7,6 +7,13 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/tickets.sh person", "timeout": 5}
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "mcp__.*",
@@ -32,7 +39,8 @@
     "Stop": [
       {
         "hooks": [
-          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/stop.sh", "timeout": 5}
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/stop.sh", "timeout": 5},
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/tickets.sh claude", "timeout": 5}
         ]
       }
     ]

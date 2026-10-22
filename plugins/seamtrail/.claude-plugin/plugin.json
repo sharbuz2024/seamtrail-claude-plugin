@@ -1,7 +1,7 @@
 {
   "name": "seamtrail",
-  "description": "SeamTrail, your team's shared memory, in Claude Code: each chat asks once which SeamTrail project it is for, then gets that project's context (decisions, drift, your tickets), saves only into it, and is reminded at turn end to save what was decided.",
-  "version": "0.5.0",
+  "description": "SeamTrail, your team's shared memory, in Claude Code: each chat asks once which SeamTrail project it is for, gets that project's context and the news that touches its own work (from Claude's one-line \"working on\" and the ticket numbers in the chat — never the conversation), saves only into it, and is reminded at turn end to save what was decided.",
+  "version": "0.6.0",
   "author": {
     "name": "SeamTrail"
   },
@@ -19,6 +19,12 @@
       "title": "SeamTrail address",
       "description": "Leave it as it is, unless your company runs its own SeamTrail.",
       "default": "https://mcp.seamtrail.com/mcp"
+    },
+    "share_chat_work": {
+      "type": "boolean",
+      "title": "Share what each chat works on",
+      "description": "Claude's one-line summary of what the chat works on, and the ticket numbers in its last few messages — never the conversation itself — so SeamTrail brings each chat only the news about its own work. SeamTrail keeps them about a day and never shows them to anyone. Turn off to share none.",
+      "default": true
     }
   }
 }
