@@ -26,7 +26,8 @@ printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'
 project=$(sed -n '1p' "$data/project-$session")
 name=$(sed -n '2p' "$data/project-$session")
 what="If in this turn your person decided something, learned a fact, hit or cleared a blocker, raised a risk, asked an open question or changed a status"
-how="one plain sentence each, with kind and subject, a decision with its reason"
+# SEAM-215 (founder 2026-10-23: "yes"): which kind a note is — the same words as SeamTrail's remember tool (KIND_GUIDE).
+how="one note per thing (split a mixed sentence: an approval and a launch are two notes), each one plain sentence with kind and subject (the ticket key). decision = a choice a person made that could have gone another way (an approval too): who, what and because; never your own choice until your person agrees. status = where the work stands: built, merged, deployed, live, a ticket moved (your own build steps go here). fact = true whatever anyone chooses: how a tool works, a measured number, what the code or a doc says now. blocker = what stops the work now. risk = what may go wrong. question = open, for someone to answer"
 done_="If none of that happened, finish now without saying anything more."
 if [ "$project" = "ask" ]; then
   reason="SeamTrail: nothing was saved this turn. $what, call the SeamTrail remember tool now: $how. This folder belongs to more than one SeamTrail project: pass the projectId the conversation shows; if you cannot tell, leave it out and SeamTrail picks it, or answers with a short list to choose from. $done_"
