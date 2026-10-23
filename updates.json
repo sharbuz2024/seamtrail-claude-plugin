@@ -1,0 +1,17 @@
+{
+  "about": "SEAM-273: SeamTrail reads this list from GitHub to tell a chat on an older plugin how to update it, and shows the same steps in Settings → Agents · MCP connector → Plugins. One entry per published plugin; each version must equal its plugin's own (tests/updates.sh checks). update: terminal commands run one after the other; where: where to run them; after: what to do next in the assistant; autoUpdate: how to have the assistant update it by itself (null when it cannot); tried: the steps were tried in the real assistant.",
+  "plugins": {
+    "claude-code": {
+      "name": "Claude Code",
+      "version": "0.7.4",
+      "update": [
+        "claude plugin marketplace update seamtrail",
+        "claude plugin update seamtrail@seamtrail"
+      ],
+      "where": "in a terminal, in your repository's folder",
+      "after": "type /reload-plugins in the chat, or start a new chat",
+      "autoUpdate": "in Claude Code, type /plugin, open Marketplaces, pick seamtrail and choose Enable auto-update",
+      "tried": true
+    }
+  }
+}

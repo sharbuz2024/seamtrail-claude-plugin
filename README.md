@@ -10,6 +10,7 @@ One plugin that connects Claude Code to SeamTrail, your team's shared memory of 
 - **What the chat works on — never the conversation.** With its SeamTrail calls, Claude adds a short summary of its own (2 to 5 sentences) of the work going on in the chat and what is being discussed, without names or secrets, and never writes it in the chat; the plugin adds the ticket numbers in your last 3 messages and Claude's last 3 replies — numbers only, read on your computer. SeamTrail uses them only to find the news for the chat (with the chat's own notes and the tickets it read): they are never shown to anyone, never saved as a note, and deleted about a day after they arrive.
 - **At every message you send**, SeamTrail hands Claude, with your message, what is new on the chat's work since it last looked, and the latest memory about the tickets your message names — only what is still true (a replaced decision is not handed over), and only what the chat was not given yet. Only the chat id and those ticket numbers go to SeamTrail, never your words. When there is nothing to tell, nothing is added.
 - **At turn end**, when nothing was saved to SeamTrail — no note, and no change SeamTrail made for you, such as a ticket moved or created (SeamTrail records those itself) — Claude is asked once to remember what was decided, learned or blocked into the chat's project (named, with its id), or to finish if nothing was. Something about another project is never saved from this chat: Claude tells you instead, and you can switch the chat's project. The reminder also says which kind each note is — one note per thing; a **decision** is a choice a person made (an approval too), with who and why, never Claude's own choice until you agree; Claude's build steps are a **status**; a **fact** is true whatever anyone chooses; plus **blocker**, **risk** and **question** — the same words as SeamTrail's own remember tool. With "No project", or before you pick, Claude is never asked. Claude saves through SeamTrail's own tools; the hooks send no conversation text.
+- **When a newer plugin is out**, the chat-start hook has told SeamTrail this plugin's version, and Claude tells you once in that chat how to update. Settings → Agents · MCP connector → Plugins → Claude Code shows the same steps, with a button that copies them.
 
 ## Install
 
@@ -24,6 +25,19 @@ One plugin that connects Claude Code to SeamTrail, your team's shared memory of 
    This turns the plugin on for the repository in `.claude/settings.json`: commit that file, and each teammate runs the same install command once. For yourself only, leave out `--scope project`.
 
 3. Paste the token when Claude Code asks for it. It is kept in your computer's secure store.
+
+## Update
+
+Claude Code does not update a plugin from someone else's marketplace by itself unless you turn that on. In a terminal, in your repository's folder:
+
+```
+claude plugin marketplace update seamtrail
+claude plugin update seamtrail@seamtrail
+```
+
+Then type `/reload-plugins` in the chat, or start a new chat. To get updates by themselves: in Claude Code, type `/plugin`, open Marketplaces, pick seamtrail and choose Enable auto-update.
+
+The newest version of each SeamTrail plugin, and how to update it, is in [updates.json](updates.json); SeamTrail reads it from here. A release bumps the plugin's version and its entry there together (`tests/updates.sh` checks).
 
 If SeamTrail is already connected to Claude Code another way, remove that connection, or Claude sees every SeamTrail tool twice.
 
