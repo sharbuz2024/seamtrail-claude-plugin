@@ -1,8 +1,9 @@
 #!/bin/sh
-# SeamTrail · chat start (SEAM-215, SEAM-230, SEAM-228). Registers this chat with SeamTrail (its id, name and folder), so
-# the chat id the guard adds to SeamTrail calls is believed. SeamTrail answers with plain text, which Claude Code adds to
-# the chat: the context of the project the person picked for this chat, or, not picked yet, the question Claude asks at
-# the first message ("Which SeamTrail project is this chat for?" — the git remote and branch only order its options).
+# SeamTrail · chat start (SEAM-215, SEAM-230, SEAM-228, SEAM-273). Registers this chat with SeamTrail (its id, name,
+# folder and this plugin's version), so the chat id the guard adds to SeamTrail calls is believed, and SeamTrail can say
+# when a newer plugin is out. SeamTrail answers with plain text, which Claude Code adds to the chat: the context of the
+# project the person picked for this chat, or, not picked yet, the question Claude asks at the first message ("Which
+# SeamTrail project is this chat for?" — the git remote and branch only order its options).
 # It also keeps, on this computer, the chat's project, so the turn-end check (stop.sh) names it — or stays quiet.
 # Silent on any failure — a hook must never get in the way.
 
@@ -21,6 +22,9 @@ if [ -n "$data" ] && [ -n "$session" ]; then rm -f "$data/saved-$session" "$data
 dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 remote=$(git -C "$dir" remote get-url origin 2>/dev/null)
 branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+# SEAM-273: this plugin's own version, from its manifest, so SeamTrail can tell this chat when a newer one is out.
+root="${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}"
+version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([0-9.]*\)".*/\1/p' "$root/.claude-plugin/plugin.json" 2>/dev/null | head -1)
 
 tmp=$(mktemp -d 2>/dev/null) || exit 0
 if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
@@ -30,6 +34,7 @@ if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   --data-urlencode "chat=$session" \
   --data-urlencode "chatName=$title" \
   --data-urlencode "folder=$dir" \
+  --data-urlencode "version=$version" \
   -D "$tmp/headers" -o "$tmp/body" 2>/dev/null; then
   cat "$tmp/body"
   project=$(grep -i '^x-seamtrail-project:' "$tmp/headers" | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')

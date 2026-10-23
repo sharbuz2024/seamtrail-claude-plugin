@@ -1,0 +1,96 @@
+#!/bin/sh
+# The Claude Code plugin's hooks, fed sample hook inputs: start.sh sends the plugin's version (SEAM-273); saved.sh counts
+# a note or a real change made through SeamTrail as saved, and stop.sh asks once, in the remember tool's words (SEAM-215).
+# Needs python3. No network: curl is a stand-in that logs what it was given.
+here=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
+P="$here/plugins/seamtrail"
+S=sess-215
+DATA=$(mktemp -d)
+export CLAUDE_PLUGIN_DATA="$DATA"
+fail=0
+
+# start.sh: the chat registers with this plugin's version, read from its manifest (SEAM-273).
+mkdir -p "$DATA/bin"
+cat > "$DATA/bin/curl" <<'CURL'
+#!/bin/sh
+printf '%s\n' "$@" >> "$CURL_LOG"
+exit 0
+CURL
+chmod +x "$DATA/bin/curl"
+want=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/.claude-plugin/plugin.json")
+for root in "$P" ""; do
+  : > "$DATA/curl.log"
+  printf '{"session_id":"%s"}' "$S" | CURL_LOG="$DATA/curl.log" PATH="$DATA/bin:$PATH" CLAUDE_PLUGIN_ROOT="$root" \
+    SEAMTRAIL_TOKEN=tok sh "$P/scripts/start.sh" > /dev/null 2>&1
+  if [ -n "$root" ]; then how="CLAUDE_PLUGIN_ROOT set"; else how="found from the script folder"; fi
+  if grep -qx "version=$want" "$DATA/curl.log"; then echo "ok   start: sends version=$want ($how)"
+  else echo "FAIL start: no version=$want ($how) in $(tr '\n' ' ' < "$DATA/curl.log")"; fail=1; fi
+done
+
+check() { # name, expected (saved|not)
+  if [ -f "$DATA/saved-$S" ]; then got=saved; else got=not; fi
+  if [ "$got" = "$2" ]; then echo "ok   $1 → $got"; else echo "FAIL $1 → $got (wanted $2)"; fail=1; fi
+  rm -f "$DATA/saved-$S"
+}
+post() { # tool, response-json-value, mode
+  printf '{"session_id":"%s","hook_event_name":"PostToolUse","tool_name":"%s","tool_input":{"question":"x"},"tool_response":%s}' \
+    "$S" "$1" "$2" | sh "$P/scripts/saved.sh" $3
+}
+
+post mcp__seamtrail__remember '"{\"memoryId\":\"m1\",\"kind\":\"fact\"}"'
+check "remember" saved
+post mcp__seamtrail__ask_seamtrail '"{\"answer\":\"No ticket found\",\"checked\":[\"search_jira\"]}"' change
+check "ask_seamtrail, a question only" not
+post mcp__seamtrail__ask_seamtrail '"{\"answer\":\"Done: moved\",\"did\":[{\"what\":\"move ticket\",\"done\":true,\"verified\":true}]}"' change
+check "ask_seamtrail, a real change (text reply)" saved
+post mcp__seamtrail__ask_seamtrail '[{"type":"text","text":"{\"did\":[{\"what\":\"move\",\"done\":true}]}"}]' change
+check "ask_seamtrail, a real change (content blocks)" saved
+post mcp__seamtrail__ask_seamtrail '{"structuredContent":{"did":[{"what":"move","done":true}]}}' change
+check "ask_seamtrail, a real change (structured)" saved
+post mcp__seamtrail__ask_seamtrail '"{\"answer\":\"Not done\",\"did\":[{\"what\":\"move\",\"done\":false,\"error\":\"Jira refused\"}]}"' change
+check "ask_seamtrail, a change that failed" not
+post mcp__seamtrail__ask_seamtrail '"{\"tool\":\"promotion_rules\",\"result\":{\"checklist\":[{\"label\":\"flag\",\"done\":true}]}}"' change
+check "ask_seamtrail, a read that happens to hold done:true" not
+post mcp__seamtrail__undo_change '"Undone — reading it back confirms it."' change
+check "undo_change" saved
+post mcp__seamtrail__undo_change '{"isError":true,"content":[{"type":"text","text":"That is not an undo handle"}]}' change
+check "undo_change that failed" not
+
+# stop.sh
+printf 'p-1\nMy Project\n' > "$DATA/project-$S"
+out=$(printf '{"session_id":"%s","hook_event_name":"Stop","stop_hook_active":false}' "$S" | sh "$P/scripts/stop.sh")
+printf '%s' "$out" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+r = d["reason"]
+assert d["decision"] == "block", d
+assert "projectId p-1 (the project “My Project”)" in r, r
+assert "This chat saves only into that project: if something belongs to another project, tell your person instead" in r, r
+assert "pass that one" not in r, r
+print("ok   stop: asks once, names the project, never points to another project")
+# SEAM-215 note kinds: the same guide as the remember tool (KIND_GUIDE)
+for want in ["one note per thing", "an approval and a launch are two notes",
+             "decision = a choice a person made that could have gone another way (an approval too): who, what and because",
+             "never your own choice until your person agrees",
+             "status = where the work stands", "your own build steps go here",
+             "fact = true whatever anyone chooses", "blocker = what stops the work now",
+             "risk = what may go wrong", "question = open, for someone to answer"]:
+    assert want in r, want
+assert "a decision with its reason" not in r, r
+print("ok   stop: says which kind each note is (decision / status / fact / blocker / risk / question), one note per thing")
+' || fail=1
+: > "$DATA/saved-$S"
+out=$(printf '{"session_id":"%s","stop_hook_active":false}' "$S" | sh "$P/scripts/stop.sh")
+if [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ]; then echo "ok   stop: saved this turn → quiet, marker cleared"; else echo "FAIL stop after a save: '$out'"; fail=1; fi
+out=$(printf '{"session_id":"%s","stop_hook_active":true}' "$S" | sh "$P/scripts/stop.sh")
+if [ -z "$out" ]; then echo "ok   stop: never asks twice"; else echo "FAIL stop asked twice"; fail=1; fi
+printf 'ask\n\n' > "$DATA/project-$S"
+out=$(printf '{"session_id":"%s","stop_hook_active":false}' "$S" | sh "$P/scripts/stop.sh")
+printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "more than one SeamTrail project" in d["reason"]; print("ok   stop: two projects matched (older SeamTrail) unchanged")' || fail=1
+rm -f "$DATA/project-$S"
+out=$(printf '{"session_id":"%s","stop_hook_active":false}' "$S" | sh "$P/scripts/stop.sh")
+if [ -z "$out" ]; then echo "ok   stop: no project → never asks"; else echo "FAIL stop asked without a project"; fail=1; fi
+
+python3 -m json.tool "$P/hooks/hooks.json" > /dev/null && python3 -m json.tool "$P/.claude-plugin/plugin.json" > /dev/null && echo "ok   hooks.json and plugin.json are valid JSON" || fail=1
+rm -rf "$DATA"
+[ $fail = 0 ] && echo "ALL PASSED" || echo "SOME FAILED"
