@@ -59,9 +59,14 @@ get() { # <path in the plugin folder> → $tmp/<path>
     *) cp "$src/$1" "$tmp/$1" ;;
   esac
 }
-scripts="start message saved picked stop"
+scripts="start message saved picked stop hint"
+# SEAM-233: what message.sh cleans a message with before its words leave (no code, secrets or credentials).
+cleaner="hint.js hint.py hint-rules.json"
 for f in $scripts; do
   get "kiro/seamtrail/$f.sh" || { echo "SeamTrail: could not get kiro/seamtrail/$f.sh from $src. Nothing was changed." >&2; exit 1; }
+done
+for f in $cleaner; do
+  get "kiro/seamtrail/$f" || { echo "SeamTrail: could not get kiro/seamtrail/$f from $src. Nothing was changed." >&2; exit 1; }
 done
 for f in kiro/steering/seamtrail.md kiro/hooks/seamtrail.json; do
   get "$f" || { echo "SeamTrail: could not get $f from $src. Nothing was changed." >&2; exit 1; }
@@ -76,6 +81,9 @@ fi
 mkdir -p "$kiro/seamtrail" "$kiro/steering" "$kiro/hooks" "$kiro/settings" || exit 1
 for f in $scripts; do
   cp "$tmp/kiro/seamtrail/$f.sh" "$kiro/seamtrail/$f.sh" && chmod +x "$kiro/seamtrail/$f.sh" || exit 1
+done
+for f in $cleaner; do
+  cp "$tmp/kiro/seamtrail/$f" "$kiro/seamtrail/$f" || exit 1
 done
 cp "$tmp/kiro/steering/seamtrail.md" "$kiro/steering/seamtrail.md" || exit 1
 cp "$tmp/kiro/hooks/seamtrail.json" "$kiro/hooks/seamtrail.json" || exit 1
@@ -130,7 +138,7 @@ else
 fi
 
 echo "SeamTrail for Kiro is in $kiro:"
-echo "  hooks/seamtrail.json, steering/seamtrail.md, seamtrail/*.sh"
+echo "  hooks/seamtrail.json, steering/seamtrail.md, seamtrail/*.sh, seamtrail/hint.js, hint.py, hint-rules.json"
 echo "  $mcp_said"
 if [ "$scope" = workspace ] && [ -f "$HOME/.kiro/hooks/seamtrail.json" ]; then
   echo "  SeamTrail's hooks are also in ~/.kiro (from --user): Kiro would run both, so remove one of them."

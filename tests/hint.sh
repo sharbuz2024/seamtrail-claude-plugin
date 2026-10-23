@@ -143,6 +143,36 @@ os.symlink(f"{bin_}/curl", f"{basic}/curl")
 out, log = hook("fix SEAM-210 by changing the refund window", basic)
 check("message.sh: without node or python3, no words leave — only chat id and ticket numbers", "refund window" not in log and "tickets=SEAM-210" in log and "BODY:" not in log, log)
 
+# The other plugins with a message hook (Codex, Devin, Gemini CLI, Kiro): the same cleaner, the same files.
+REPO = os.path.dirname(os.path.dirname(S.rstrip("/")))  # …/plugins
+OTHERS = {
+    "codex": f"{REPO}/seamtrail-codex/scripts",
+    "devin": f"{REPO}/seamtrail-devin/scripts",
+    "gemini": f"{REPO}/seamtrail-gemini/scripts",
+    "kiro": f"{REPO}/seamtrail-kiro/kiro/seamtrail",
+}
+for tool, d in OTHERS.items():
+    if not os.path.isdir(d):
+        continue
+    same = all(open(f"{d}/{f}", "rb").read() == open(f"{S}/{f}", "rb").read() for f in ("hint.js", "hint.py", "hint-rules.json"))
+    check(f"{tool}: carries the Claude Code plugin's cleaner, byte for byte", same)
+    state = f"{T}/state-{tool}"
+    os.makedirs(f"{state}/seamtrail/kiro", exist_ok=True)
+    open(f"{state}/seamtrail/kiro/started-c-{tool}", "w").close()  # Kiro: the chat was registered at its start
+    log = f"{T}/curl.log"
+    open(log, "w").close()
+    env = dict(os.environ, PATH=f"{bin_}:{syspath}", CURL_LOG=log, POST_CODE="200", SEAMTRAIL_TOKEN="tok-1",
+               XDG_STATE_HOME=state, HOME=T)
+    hook_in = {"session_id": f"c-{tool}", "prompt": "fix SEAM-210 by changing the refund window, password=hunter2zz and AKIAIOSFODNN7EXAMPLE"}
+    if tool == "devin":
+        hook_in["prompt_id"] = "q-1"
+    p = subprocess.run(["sh", f"{d}/message.sh"], input=json.dumps(hook_in), capture_output=True, text=True, env=env, timeout=30)
+    sent = open(log).read()
+    body = json.loads(sent.split("BODY:", 1)[1].splitlines()[0]) if "BODY:" in sent else {}
+    check(f"{tool}: POSTs the cleaned message — what it is about, its ticket", body.get("chat") == f"c-{tool}" and body.get("tickets") == "SEAM-210" and "changing the refund window" in body.get("hint", ""), sent[:300])
+    check(f"{tool}: no secret or credential left", "hunter2zz" not in sent and "AKIAIOSFODNN7EXAMPLE" not in sent, sent[:300])
+    check(f"{tool}: SeamTrail's answer reaches the assistant", "news for the chat" in p.stdout, p.stdout[:200])
+
 print("ALL PASSED" if not fail else "SOME FAILED")
 sys.exit(1 if fail else 0)
 PY

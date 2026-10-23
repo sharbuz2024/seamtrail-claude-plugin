@@ -40,11 +40,14 @@ export STUB_LOG="$LOG" STUB_ROOT="$P"
 cat > "$T/bin/curl" <<'EOF'
 #!/bin/sh
 echo "--- call" >> "$STUB_LOG"
-out=""; hdr=""; url=""
+out=""; hdr=""; url=""; fmt=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -o) out="$2"; shift ;;
     -D) hdr="$2"; shift ;;
+    -w) fmt="$2"; shift ;;
+    -X) printf 'METHOD %s\n' "$2" >> "$STUB_LOG"; shift ;;
+    --data-binary) printf 'BODY %s\n' "$(cat)" >> "$STUB_LOG"; shift ;;
     -H | --max-time | --data-urlencode) printf '%s %s\n' "$1" "$2" >> "$STUB_LOG"; shift ;;
     -*) ;;
     *) url="$1"; printf 'URL %s\n' "$1" >> "$STUB_LOG" ;;
@@ -56,7 +59,9 @@ case "$url" in
   */hook/start)
     printf 'HTTP/2 200\r\ncontent-type: text/plain\r\nx-seamtrail-project: %s\r\nx-seamtrail-project-name: My Project\r\n\r\n' "${STUB_PROJECT:-0f3c2a10-6b1e-4c55-9d2e-7a8b9c0d1e2f}" > "$hdr"
     printf 'SeamTrail project context for this chat.' > "$out" ;;
-  */hook/message) printf 'SeamTrail news: PAY-4 moved to Done.' ;;
+  */hook/message)
+    if [ -n "$out" ]; then printf 'SeamTrail news: PAY-4 moved to Done.' > "$out"; else printf 'SeamTrail news: PAY-4 moved to Done.'; fi
+    [ -n "$fmt" ] && printf '200' ;;
   https://example.invalid/plugin/*) cp "$STUB_ROOT/${url#https://example.invalid/plugin/}" "$out" 2>/dev/null || exit 22 ;;
   *) exit 6 ;;
 esac
@@ -156,15 +161,18 @@ is "start, an id that is not plain: nothing at all" "$out|$(calls)" "|0"
 echo "· message.sh (UserPromptSubmit)"
 rm -f "$DATA/started-$S"; printf '%s' "$START" | SEAMTRAIL_TOKEN=tok-1 run start.sh >/dev/null; : > "$LOG"
 : > "$DATA/asked-$S"
-MSG='{"hook_event_name":"UserPromptSubmit","session_id":"'"$S"'","prompt":"Fix PAY-4 and ABC-12 (not pay-5) \"quoted\"\nthen DEF-1 secret-words-xyz","cwd":"/work/ZZZ-9-folder"}'
+MSG='{"hook_event_name":"UserPromptSubmit","session_id":"'"$S"'","prompt":"Fix PAY-4 and ABC-12 (not pay-5) \"quoted\"\nthen DEF-1 with password=hunter2zz","cwd":"/work/ZZZ-9-folder"}'
 out=$(printf '%s' "$MSG" | SEAMTRAIL_TOKEN=tok-1 run message.sh)
 is "message: SeamTrail's text goes to the agent" "$out" "SeamTrail news: PAY-4 moved to Done."
 log=$(cat "$LOG")
 has "message: /hook/message" "$log" "URL https://mcp.seamtrail.com/mcp/hook/message"
-has "message: the chat id" "$log" "--data-urlencode chat=$S"
-has "message: the message's ticket keys only (not the folder's)" "$log" "--data-urlencode tickets=ABC-12,DEF-1,PAY-4"
+# SEAM-233: what the message is about, cleaned on the computer, by POST — with node or python3 (this test has them).
+has "message: sent by POST, in the body" "$log" "METHOD POST"
+has "message: the chat id and the message's ticket keys only (not the folder's)" "$log" "\"chat\":\"$S\""
+has "message: … the ticket keys" "$log" "\"tickets\":\"ABC-12,DEF-1,PAY-4\""
+has "message: … and its words" "$log" "Fix PAY-4 and ABC-12"
+hasnt "message: never a secret or credential" "$log" "hunter2zz"
 is "message: one call (the chat was registered at start)" "$(calls)" 1
-hasnt "message: never its words" "$log" "secret-words-xyz"
 file_is "message: a message from the person starts a new turn" "$DATA/asked-$S" no
 : > "$LOG"; : > "$DATA/asked-$S"
 REMIND='{"hook_event_name":"UserPromptSubmit","session_id":"'"$S"'","prompt":"SeamTrail: nothing was saved this turn. If in this turn your person decided something"}'
@@ -306,14 +314,16 @@ has "turn 1: nothing saved → the reminder" "$r1" '"decision":"block"'
 in3 UserPromptSubmit ',"prompt":"SeamTrail: nothing was saved this turn. If in this turn …"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
 r2=$(in3 Stop "" | run stop.sh)
 is "turn 1: the agent answered the reminder → quiet (no loop)" "$r2" ""
-in3 UserPromptSubmit ',"prompt":"We chose Redis because of TTLs"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
+in3 UserPromptSubmit ',"prompt":"We chose Redis because of TTLs, token=abcd1234zz"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
 in3 PostToolUse ',"tool_name":"mcp_seamtrail_remember","tool_input":{},"tool_response":"{}"' | run saved.sh
 r3=$(in3 Stop "" | run stop.sh)
 is "turn 2: the agent saved → quiet" "$r3" ""
 in3 UserPromptSubmit ',"prompt":"ok next"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
 r4=$(in3 Stop "" | run stop.sh)
 has "turn 3: nothing saved → the reminder again" "$r4" '"decision":"block"'
-hasnt "no message text ever left the computer" "$(cat "$LOG")" "Redis"
+# SEAM-233 (founder 2026-10-24): a message's words go, cleaned on the computer — never a secret or credential.
+has "a message's words went, cleaned" "$(cat "$LOG")" "We chose Redis because of TTLs"
+hasnt "no secret or credential ever left the computer" "$(cat "$LOG")" "abcd1234zz"
 
 echo "· install.sh"
 W="$T/team-repo"; mkdir -p "$W"

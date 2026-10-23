@@ -3,7 +3,7 @@
 Connects Kiro — the IDE (1.0 and later) and the Kiro CLI (V3) — to SeamTrail, your team's shared memory of its projects, with the same hooks as SeamTrail's Claude Code plugin, as far as Kiro's hooks allow.
 
 - **At chat start**, the chat is registered with SeamTrail (its id and folder), and Kiro's agent gets the project's context — or, in a new chat, asks you once which SeamTrail project the chat is for.
-- **At every message you send**, the agent gets what is new on the chat's work and the latest memory about the tickets your message names. Only the chat id and those ticket numbers go to SeamTrail, never your words.
+- **At every message you send**, the agent gets what is new on the chat's work, the latest memory about the tickets your message names, and what the message itself seems to be about (found by meaning). What goes to SeamTrail: the chat id, those ticket numbers, and a search hint cut from that one message on your computer first — code blocks, secrets and credentials taken out — sent in the request body, used only for the search and not kept. Cleaning needs `node` or `python3`; without either, no words of your message are sent.
 - **On every SeamTrail call**, the agent adds the chat's id, the ticket numbers of the last few messages and a short summary of the work. In Claude Code a hook adds these; a Kiro hook cannot change a tool call, so the steering file asks the agent to.
 - **At turn end**, when nothing was saved to SeamTrail, the agent is asked once to remember what was decided, learned or blocked into the chat's project — or to finish if nothing was.
 
