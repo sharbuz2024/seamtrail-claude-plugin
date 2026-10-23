@@ -40,6 +40,8 @@ if [ -n "$token" ]; then
   fi
   tmp=$(mktemp -d 2>/dev/null) || tmp=""
   if [ -n "$tmp" ]; then
+    # SEAM-273: this plugin's own version, from its manifest, so SeamTrail can tell this chat when a newer one is out.
+    version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([0-9.]*\)".*/\1/p' "$(dirname "$0")/../.cursor-plugin/plugin.json" 2>/dev/null | head -1)
     if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
       -H "Authorization: Bearer $token" \
       --data-urlencode "remote=$remote" \
@@ -47,6 +49,7 @@ if [ -n "$token" ]; then
       --data-urlencode "chat=$chat" \
       --data-urlencode "folder=$dir" \
       --data-urlencode "assistant=cursor" \
+      --data-urlencode "version=$version" \
       -D "$tmp/headers" -o "$tmp/body" 2>/dev/null; then
       text=$(cat "$tmp/body")
       project=$(grep -i '^x-seamtrail-project:' "$tmp/headers" | head -n 1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')

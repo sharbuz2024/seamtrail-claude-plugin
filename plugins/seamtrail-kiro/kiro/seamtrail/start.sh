@@ -34,6 +34,9 @@ remote=$(git -C "$dir" remote get-url origin 2>/dev/null)
 branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 tmp=$(mktemp -d 2>/dev/null) || exit 0
+# SEAM-273: this kit's version (Kiro has no plugin manifest), so SeamTrail can tell this chat when a newer one
+# is out. Keep it equal to updates.json's kiro version (tests/updates.sh checks).
+version="0.1.0"
 if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   -H "Authorization: Bearer $token" \
   --data-urlencode "remote=$remote" \
@@ -41,6 +44,7 @@ if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   --data-urlencode "chat=$session" \
   --data-urlencode "folder=$dir" \
   --data-urlencode "assistant=kiro" \
+  --data-urlencode "version=$version" \
   -D "$tmp/headers" -o "$tmp/body" 2>/dev/null; then
   cat "$tmp/body"
   # The chat id goes to the agent, who adds it to SeamTrail's calls (a Kiro hook cannot).

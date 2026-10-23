@@ -169,8 +169,9 @@ echo "— chat start (start.sh)"
 out=$(c_start chat-1 | "$SH" "$S/start.sh")
 printf '%s' "$out" | is "Copilot harness: SeamTrail's text is the chat's context, as JSON additionalContext (quotes, \\, tab, UTF-8 kept; CR dropped)" \
   'list(d) == ["additionalContext"] and d["additionalContext"] == body'
-last | is "registers the chat as a VS Code chat: chat id, folder, git remote and branch, assistant=vscode, the token" \
-  'd["path"] == "/mcp/hook/start" and d["query"] == {"remote": "git@github.com:acme/pay.git", "branch": "PAY-4-checkout", "chat": "chat-1", "folder": env["T"] + "/repo", "assistant": "vscode"} and d["auth"] == "Bearer test-token"'
+VV=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/plugin.json"); export VV  # SEAM-273
+last | is "registers the chat as a VS Code chat: chat id, folder, git remote and branch, assistant=vscode, the plugin's version, the token" \
+  'd["path"] == "/mcp/hook/start" and d["query"] == {"remote": "git@github.com:acme/pay.git", "branch": "PAY-4-checkout", "chat": "chat-1", "folder": env["T"] + "/repo", "assistant": "vscode", "version": env["VV"]} and d["auth"] == "Bearer test-token"'
 printf '%s\n%s\n' "$PID" "$PNAME" > "$T/want"
 yes_ "keeps the chat's project (id and name, as SeamTrail sent them) for the turn-end check" 'cmp -s "$T/want" "$D/project-chat-1"'
 out=$(s_start chat-2 | "$SH" "$S/start.sh")

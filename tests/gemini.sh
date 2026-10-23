@@ -117,9 +117,11 @@ out=$(session_start startup | SEAMTRAIL_TOKEN=tok-1 run start.sh)
 check_json "chat start: SeamTrail's text goes to Gemini as context, escaped right" "$out" \
   'd == {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": a[0]}}' \
   "$(printf 'Project “Pay Core” — say "hi" to C:\\temp\there\n<b>%%s</b> 100%%\nlast line')"
+V=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/gemini-extension.json")  # SEAM-273
 if called "https://mcp.seamtrail.com/mcp/hook/start" && called "assistant=gemini" && called "chat=$S" && called "folder=$REPO" \
-  && called "remote=https://github.com/acme/app.git" && called "branch=SEAM-253-gemini" && called "Authorization: Bearer tok-1"; then
-  ok "chat start: registers the chat (assistant=gemini, chat id, folder, remote, branch) on the token"
+  && called "remote=https://github.com/acme/app.git" && called "branch=SEAM-253-gemini" && called "Authorization: Bearer tok-1" \
+  && called "version=$V"; then
+  ok "chat start: registers the chat (assistant=gemini, chat id, folder, remote, branch, the extension's version $V) on the token"
 else bad "chat start call: $(tr '\n' ' ' < "$FAKE/curl.log")"; fi
 if grep -Eq 'chatName|transcript|session\.json' "$FAKE/curl.log"; then bad "chat start sent more than it should"; else ok "chat start: sends nothing else (no transcript, no chat text)"; fi
 if [ "$(cat "$DATA/project-$S")" = "$(printf '%s\nPay "Core"' "$PROJ")" ]; then ok "chat start: keeps the chat's project and name"; else bad "project file: $(cat "$DATA/project-$S")"; fi

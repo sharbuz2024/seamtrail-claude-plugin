@@ -129,6 +129,8 @@ has "start: the agent is told the chat id" "$out" "This chat's SeamTrail chat id
 log=$(cat "$LOG")
 has "start: /hook/start" "$log" "URL https://mcp.seamtrail.com/mcp/hook/start"
 has "start: assistant=kiro" "$log" "--data-urlencode assistant=kiro"
+KV=$(sed -n 's/^version="\(.*\)"$/\1/p' "$P/kiro/seamtrail/start.sh")  # SEAM-273
+has "start: the kit's version ($KV)" "$log" "--data-urlencode version=$KV"
 has "start: chat id" "$log" "--data-urlencode chat=$S"
 has "start: git remote" "$log" "--data-urlencode remote=https://github.com/acme/pay.git"
 has "start: branch" "$log" "--data-urlencode branch=PAY-4-login"

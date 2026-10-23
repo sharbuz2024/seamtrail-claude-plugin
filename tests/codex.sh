@@ -178,9 +178,11 @@ for SH in $SHELLS; do
   out=$(cd "$W" && start_in "$REPO" startup | SEAMTRAIL_TOKEN=tok-123 PLUGIN_DATA="$D" FAKE_PROJECT="$PID" FAKE_NAME="Pay ${BS}u2014 web" \
     FAKE_BODY='SeamTrail is your team'"'"'s shared memory of its projects. This folder works on the project "Pay".' $SH "$P/scripts/start.sh")
   check "start: SeamTrail's text goes to Codex as it is (plain text = developer context)" "$out" 'SeamTrail is your team'"'"'s shared memory of its projects. This folder works on the project "Pay".'
+  V=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/.codex-plugin/plugin.json")  # SEAM-273
   if sent "https://mcp.seamtrail.com/mcp/hook/start" && sent "Authorization: Bearer tok-123" && sent "assistant=codex" \
-    && sent "chat=$S" && sent "folder=$REPO" && sent "remote=git@github.com:acme/pay.git" && sent "branch=PAY-4-login"; then
-    ok "start: registers the chat — assistant=codex, chat id, folder (from the input's cwd), git remote and branch, token"
+    && sent "chat=$S" && sent "folder=$REPO" && sent "remote=git@github.com:acme/pay.git" && sent "branch=PAY-4-login" \
+    && sent "version=$V"; then
+    ok "start: registers the chat — assistant=codex, chat id, folder (from the input's cwd), git remote and branch, the plugin's version ($V), token"
   else bad "start: what was sent: $(tr '\n' ' ' < "$FAKE_LOG")"; fi
   if grep -q '^chatName=' "$FAKE_LOG"; then bad "start: sends a chat name Codex does not give"; else ok "start: no chat name (Codex gives none)"; fi
   printf '%s\nPay %su2014 web\n' "$PID" "$BS" > "$W/want-project"

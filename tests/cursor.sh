@@ -123,8 +123,9 @@ for SH in $SHELLS; do
   export WANT="$BODY"
   check "start: the server's text goes to the agent as additional_context, exactly" "d['additional_context'] == want" "$out"
   check "start: the session's env names this plugin's folder" "d['env']['SEAMTRAIL_CURSOR_ROOT'] == '$P'" "$out"
-  check "start: /hook/start got chat, folder, remote, branch, assistant=cursor and the token" \
-    "all(json.loads(l)['path'] == '/mcp/hook/start' for l in raw.splitlines()) and (lambda q, a: q['chat'] == ['$C'] and q['folder'] == ['$WS'] and q['remote'] == ['git@github.com:acme/pay.git'] and q['branch'] == ['seam-256-test'] and q['assistant'] == ['cursor'] and a == 'Bearer tok-1')(json.loads(raw.splitlines()[-1])['query'], json.loads(raw.splitlines()[-1])['auth'])" \
+  V=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/.cursor-plugin/plugin.json")  # SEAM-273
+  check "start: /hook/start got chat, folder, remote, branch, assistant=cursor, the plugin's version ($V) and the token" \
+    "all(json.loads(l)['path'] == '/mcp/hook/start' for l in raw.splitlines()) and (lambda q, a: q['chat'] == ['$C'] and q['folder'] == ['$WS'] and q['remote'] == ['git@github.com:acme/pay.git'] and q['branch'] == ['seam-256-test'] and q['assistant'] == ['cursor'] and q['version'] == ['$V'] and a == 'Bearer tok-1')(json.loads(raw.splitlines()[-1])['query'], json.loads(raw.splitlines()[-1])['auth'])" \
     "$(cat "$T/stub.log")"
   if [ "$(cat "$ST/project-$C")" = "$PID
 $NAME" ]; then ok "start: keeps the chat's project (id, then the name as sent)"; else bad "start: project file '$(cat "$ST/project-$C" 2>/dev/null)'"; fi

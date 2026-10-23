@@ -26,6 +26,8 @@ remote=$(git -C "$dir" remote get-url origin 2>/dev/null)
 branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 tmp=$(mktemp -d 2>/dev/null) || exit 0
+# SEAM-273: this plugin's own version, from its manifest, so SeamTrail can tell this chat when a newer one is out.
+version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([0-9.]*\)".*/\1/p' "$(dirname "$0")/../.devin-plugin/plugin.json" 2>/dev/null | head -1)
 if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   -H "Authorization: Bearer $token" \
   --data-urlencode "remote=$remote" \
@@ -34,6 +36,7 @@ if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   --data-urlencode "chatName=$title" \
   --data-urlencode "folder=$dir" \
   --data-urlencode "assistant=devin" \
+  --data-urlencode "version=$version" \
   -D "$tmp/headers" -o "$tmp/body" 2>/dev/null; then
   context SessionStart < "$tmp/body"
   project=$(grep -i '^x-seamtrail-project:' "$tmp/headers" | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')

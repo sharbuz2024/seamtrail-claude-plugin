@@ -130,11 +130,12 @@ assert o["additionalContext"] == body.rstrip("\n").replace("\x07", ""), repr(o["
 print("ok   start: SeamTrail's text handed to Devin as additionalContext — quotes, backslashes, tab, CR, ✓ intact")
 EOF
 miss=""
+V=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/.devin-plugin/plugin.json")  # SEAM-273
 for a in https://seamtrail.invalid/mcp/hook/start "Authorization: Bearer tok-254" assistant=devin "chat=$S" \
-  "folder=$T/repo" remote=https://github.com/acme/pay.git branch=seam-254-devin chatName=; do
+  "folder=$T/repo" remote=https://github.com/acme/pay.git branch=seam-254-devin chatName= "version=$V"; do
   called "$a" || miss="$miss '$a'"
 done
-is "start: assistant=devin, chat id, folder, remote and branch sent with the token (missing:)" "$miss" ""
+is "start: assistant=devin, chat id, folder, remote, branch and the plugin's version sent with the token (missing:)" "$miss" ""
 is "start: the chat's project kept (id, name)" "$(cat "$DATA/project-$S" 2>/dev/null | paste -sd'|' -)" \
   "11111111-2222-3333-4444-555555555555|Payments"
 [ -f "$DATA/saved-$S" ] && bad "start: an old saved marker survived" || ok "start: a new chat starts with nothing saved"
