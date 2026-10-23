@@ -19,6 +19,7 @@ SeamTrail (this plugin's "seamtrail" MCP server) is the team's shared memory of 
 
 ## Before the turn ends
 
-- If your person decided something, learned a fact, hit or cleared a blocker, raised a risk, asked an open question or changed a status: call remember with the chat's projectId, one plain sentence each, with kind and subject, a decision with its reason. Do not wait to be asked. Never store secrets.
+- If your person decided something, learned a fact, hit or cleared a blocker, raised a risk, asked an open question or changed a status: call remember with the chat's projectId, one note per thing (split a mixed sentence: an approval and a launch are two notes), each one plain sentence with kind and subject (the ticket key). Do not wait to be asked. Never store secrets.
+- Which kind: decision = a choice a person made that could have gone another way (an approval too): who, what and because; never your own choice until your person agrees. status = where the work stands: built, merged, deployed, live, a ticket moved (your own build steps go here). fact = true whatever anyone chooses: how a tool works, a measured number, what the code or a doc says now. blocker = what stops the work now. risk = what may go wrong. question = open, for someone to answer.
 - When SeamTrail's turn-end reminder comes, follow it once; if none of that happened, finish without saying anything more.
 - Before you resolve or replace someone's decision, tell your person what was decided, by whom and when. If remember returns a question, ask them, and call settle_question only on their yes.

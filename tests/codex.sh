@@ -336,7 +336,8 @@ $7"
 assert 'projectId $PID (the project “Café \"Pay\" — web”)' in d['reason'], d['reason']
 assert 'This chat saves only into that project: if something belongs to another project, tell your person instead' in d['reason']"
   stop_case "a project picked during the chat (id only)" "$PID" '' no false ask "
-assert 'projectId $PID: one plain sentence each' in d['reason'], d['reason']"
+assert 'projectId $PID: one note per thing' in d['reason'], d['reason']
+assert 'decision = a choice a person made' in d['reason'] and 'your own build steps go here' in d['reason'], d['reason']"
   stop_case "two projects matched (older SeamTrail)" ask '' no false ask "
 assert 'more than one SeamTrail project' in d['reason'], d['reason']"
   stop_case "saved this turn" "$PID" Pay yes false quiet
