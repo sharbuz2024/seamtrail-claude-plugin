@@ -12,6 +12,73 @@
       "after": "type /reload-plugins in the chat, or start a new chat",
       "autoUpdate": "in Claude Code, type /plugin, open Marketplaces, pick seamtrail and choose Enable auto-update",
       "tried": true
+    },
+    "cursor": {
+      "name": "Cursor",
+      "version": "0.1.0",
+      "update": [
+        "d=$(mktemp -d) && git clone -q --depth 1 https://github.com/sharbuz2024/seamtrail-claude-plugin \"$d\" && mkdir -p ~/.cursor/plugins/local && rm -rf ~/.cursor/plugins/local/seamtrail-cursor && cp -R \"$d/plugins/seamtrail-cursor\" ~/.cursor/plugins/local/ && rm -rf \"$d\""
+      ],
+      "where": "in a terminal (for a copy on your computer; from a team marketplace, Cursor fetches the newest when it starts)",
+      "after": "run Developer: Reload Window in Cursor, or restart it",
+      "autoUpdate": "on a team marketplace, an admin turns on Auto Refresh in the Cursor dashboard (Plugins & MCPs)",
+      "tried": false
+    },
+    "vscode": {
+      "name": "VS Code",
+      "version": "0.1.0",
+      "update": [
+        "Extensions: Check for Extension Updates"
+      ],
+      "where": "in VS Code's Command Palette (Cmd+Shift+P on a Mac, Ctrl+Shift+P elsewhere)",
+      "after": "start a new chat",
+      "autoUpdate": "keep VS Code's setting extensions.autoUpdate on: VS Code then checks every day",
+      "tried": false
+    },
+    "codex": {
+      "name": "Codex",
+      "version": "0.1.0",
+      "update": [
+        "codex plugin marketplace upgrade seamtrail"
+      ],
+      "where": "in a terminal",
+      "after": "start a new Codex session, and trust SeamTrail's changed hooks in /hooks",
+      "autoUpdate": null,
+      "tried": false
+    },
+    "gemini": {
+      "name": "Gemini CLI",
+      "version": "0.1.0",
+      "update": [
+        "git -C path/to/seamtrail-claude-plugin pull",
+        "gemini extensions update seamtrail"
+      ],
+      "where": "in a terminal (the first command in the copy of this repository you installed from)",
+      "after": "restart Gemini CLI",
+      "autoUpdate": null,
+      "tried": false
+    },
+    "devin": {
+      "name": "Devin",
+      "version": "0.1.0",
+      "update": [
+        "devin plugins update seamtrail"
+      ],
+      "where": "in a terminal",
+      "after": "start a new Devin session",
+      "autoUpdate": null,
+      "tried": false
+    },
+    "kiro": {
+      "name": "Kiro",
+      "version": "0.1.0",
+      "update": [
+        "curl -fsSL https://raw.githubusercontent.com/sharbuz2024/seamtrail-claude-plugin/main/plugins/seamtrail-kiro/install.sh | sh"
+      ],
+      "where": "in a terminal, in your repository's folder",
+      "after": "commit the files it lists and reopen Kiro (it replaces SeamTrail's own hook, steering and script files, so a change you made to them is lost)",
+      "autoUpdate": null,
+      "tried": false
     }
   }
 }
