@@ -7,34 +7,27 @@
 # permission question (Claude Code's own rules still decide), and never touches another server's tools. SeamTrail
 # believes the id only for a chat this person registered (start.sh does that at chat start), and takes it out before the tool
 # runs. With no JSON tool on this computer (jq, node or python3), the call simply goes on as it is.
+#
+# SEAM-233 (founder 2026-10-24: "the agent communication summary also make sure no secrets, credentials, security data"):
+# Claude's workingOn line — what the person's latest message is about — is cleaned here, on this computer, before the
+# call leaves: hint.js (node) or hint.py (python3) cut out secrets, credentials and security data with the same rules as
+# the message (hint-rules.json). With only jq the line is left out; with no JSON tool at all the call goes as it is and
+# SeamTrail cuts them out before keeping anything.
 
 input=$(cat)
 prefix='mcp__plugin_seamtrail_seamtrail__'
 # SEAM-233: the ticket numbers tickets.sh keeps on this computer (numbers only) go with the call as chatTickets.
 session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+here=$(dirname "$0")
 numbers=""
 if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl" ]; then
   numbers="$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl"
 fi
 
-# jq: on macOS 15 and later, and on most Linux machines.
-if command -v jq >/dev/null 2>&1; then
-  if [ -n "$numbers" ]; then set -- --slurpfile seen "$numbers"; else set -- --argjson seen '[]'; fi
-  printf '%s' "$input" | jq -c --arg p "$prefix" "$@" '
-    select((.session_id // "") != ""
-      and (((.tool_name // "") | startswith($p))
-        or ((.mcp_server.name // "") | ascii_downcase | contains("seamtrail"))))
-    | ($seen | map(.k // []) | add // [] | unique | join(",")) as $keys
-    | {hookSpecificOutput: {hookEventName: "PreToolUse",
-        updatedInput: ((.tool_input // {}) + {chatId: .session_id}
-          + (if $keys != "" then {chatTickets: $keys} else {} end))}}' 2>/dev/null
-  exit 0
-fi
-
 # node: wherever Claude Code was installed with npm.
 if command -v node >/dev/null 2>&1; then
   printf '%s' "$input" | node -e '
-    let s = ""; const [p, file] = process.argv.slice(1);
+    let s = ""; const [p, file, dir] = process.argv.slice(1);
     process.stdin.on("data", (d) => (s += d)).on("end", () => {
       try {
         const d = JSON.parse(s);
@@ -49,16 +42,24 @@ if command -v node >/dev/null 2>&1; then
             if (keys.size) updatedInput.chatTickets = [...keys].sort().join(",");
           } catch (e) {}
         }
+        // SEAM-233: the workingOn line, cleaned by hint.js before it leaves; if that fails, it does not leave.
+        if (typeof updatedInput.workingOn === "string") {
+          try {
+            const out = require("child_process").execFileSync(process.execPath, [dir + "/hint.js", dir + "/hint-rules.json"],
+              { input: JSON.stringify({ session_id: "line", prompt: updatedInput.workingOn }), timeout: 3000 });
+            const h = JSON.parse(String(out)).hint;
+            if (h) updatedInput.workingOn = h; else delete updatedInput.workingOn;
+          } catch (e) { delete updatedInput.workingOn; }
+        }
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput } }));
       } catch (e) {}
-    });' "$prefix" "$numbers" 2>/dev/null
+    });' "$prefix" "$numbers" "$here" 2>/dev/null
   exit 0
 fi
 
 # python3 — but not macOS's stand-in without the developer tools, which would open an install window.
 py=$(command -v python3 2>/dev/null)
-if [ -n "$py" ]; then
-  if [ "$(uname)" = Darwin ] && [ "$py" = /usr/bin/python3 ] && ! xcode-select -p >/dev/null 2>&1; then exit 0; fi
+if [ -n "$py" ] && ! { [ "$(uname)" = Darwin ] && [ "$py" = /usr/bin/python3 ] && ! xcode-select -p >/dev/null 2>&1; }; then
   printf '%s' "$input" | "$py" -c '
 import json, sys
 p = sys.argv[1]
@@ -78,7 +79,38 @@ if d.get("session_id") and (str(d.get("tool_name") or "").startswith(p) or "seam
                 i["chatTickets"] = ",".join(keys)
         except Exception:
             pass
+    # SEAM-233: the workingOn line, cleaned by hint.py before it leaves; if that fails, it does not leave.
+    if isinstance(i.get("workingOn"), str):
+        try:
+            import subprocess
+            here = sys.argv[3]
+            out = subprocess.run([sys.executable, "-I", here + "/hint.py", here + "/hint-rules.json"],
+                                 input=json.dumps({"session_id": "line", "prompt": i["workingOn"]}),
+                                 capture_output=True, text=True, timeout=3).stdout
+            h = json.loads(out).get("hint")
+            if h:
+                i["workingOn"] = h
+            else:
+                del i["workingOn"]
+        except Exception:
+            i.pop("workingOn", None)
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": i}}))
-' "$prefix" "$numbers" 2>/dev/null
+' "$prefix" "$numbers" "$here" 2>/dev/null
+  exit 0
 fi
+# jq (on macOS 15 and later, and most Linux machines), when there is no node or python3 to clean Claude's line: the
+# line is left out (SEAM-233).
+if command -v jq >/dev/null 2>&1; then
+  if [ -n "$numbers" ]; then set -- --slurpfile seen "$numbers"; else set -- --argjson seen '[]'; fi
+  printf '%s' "$input" | jq -c --arg p "$prefix" "$@" '
+    select((.session_id // "") != ""
+      and (((.tool_name // "") | startswith($p))
+        or ((.mcp_server.name // "") | ascii_downcase | contains("seamtrail"))))
+    | ($seen | map(.k // []) | add // [] | unique | join(",")) as $keys
+    | {hookSpecificOutput: {hookEventName: "PreToolUse",
+        updatedInput: ((.tool_input // {} | del(.workingOn)) + {chatId: .session_id}
+          + (if $keys != "" then {chatTickets: $keys} else {} end))}}' 2>/dev/null
+  exit 0
+fi
+
 exit 0

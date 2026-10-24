@@ -91,6 +91,52 @@ rm -f "$DATA/project-$S"
 out=$(printf '{"session_id":"%s","stop_hook_active":false}' "$S" | sh "$P/scripts/stop.sh")
 if [ -z "$out" ]; then echo "ok   stop: no project → never asks"; else echo "FAIL stop asked without a project"; fail=1; fi
 
+# guard.sh (SEAM-233, founder 2026-10-24: "the agent communication summary also make sure no secrets, credentials,
+# security data"): Claude's workingOn line is cleaned on this computer before the call leaves — by node, else python3;
+# with only jq it is left out; the chat id is added either way.
+export P DATA
+python3 -I - <<'PY' || fail=1
+import json, os, subprocess
+P, D = os.environ["P"], os.environ["DATA"]
+bad = 0
+def check(label, cond, info=""):
+    global bad
+    print(("ok   " if cond else "FAIL ") + label + ("" if cond else f" — {info}"))
+    bad |= not cond
+token = "gh" + "p_abcdefghijklmnopqrstuvwxyz0123456789"  # two pieces: no token-shaped string in this file
+line = f"Fixing the stage login (PAY-4); the password is tiger123, key {token}"
+hook_in = json.dumps({"session_id": "s-guard", "tool_name": "mcp__plugin_seamtrail_seamtrail__remember",
+                      "tool_input": {"content": "x", "workingOn": line}})
+def which(t):
+    r = subprocess.run(["sh", "-c", f"command -v {t}"], capture_output=True, text=True).stdout.strip()
+    return r if r.startswith("/") else None
+basics = ["sh", "cat", "grep", "sed", "head", "dirname", "uname", "xcode-select", "printf"]
+def path_with(*tools):
+    d = os.path.join(D, "path-" + "-".join(tools or ("none",)))
+    os.makedirs(d, exist_ok=True)
+    for t in basics + list(tools):
+        w = which(t)
+        if w and not os.path.exists(os.path.join(d, t)):
+            os.symlink(w, os.path.join(d, t))
+    return d
+def guard(path):
+    r = subprocess.run(["sh", f"{P}/scripts/guard.sh"], input=hook_in, capture_output=True, text=True,
+                       env={"PATH": path, "HOME": D, "CLAUDE_PLUGIN_DATA": D}, timeout=30)
+    return json.loads(r.stdout)["hookSpecificOutput"]["updatedInput"] if r.stdout.strip() else None
+for tool in [t for t in ("node", "python3") if which(t)]:
+    out = guard(path_with(tool))
+    wo = (out or {}).get("workingOn", "")
+    check(f"guard with {tool}: the line keeps what the message is about", out is not None and "Fixing the stage login (PAY-4)" in wo, json.dumps(out))
+    check(f"guard with {tool}: no secret or credential leaves", "tiger123" not in wo and token not in wo, wo)
+    check(f"guard with {tool}: the chat id is added", (out or {}).get("chatId") == "s-guard", json.dumps(out))
+if which("jq"):
+    out = guard(path_with("jq"))
+    check("guard with only jq: the line is left out, the chat id added", out is not None and "workingOn" not in out and out.get("chatId") == "s-guard", json.dumps(out))
+out = guard(path_with())
+check("guard with no JSON tool: the call goes as it is (SeamTrail cleans the line before keeping it)", out is None, json.dumps(out))
+raise SystemExit(1 if bad else 0)
+PY
+
 python3 -m json.tool "$P/hooks/hooks.json" > /dev/null && python3 -m json.tool "$P/.claude-plugin/plugin.json" > /dev/null && echo "ok   hooks.json and plugin.json are valid JSON" || fail=1
 rm -rf "$DATA"
 [ $fail = 0 ] && echo "ALL PASSED" || echo "SOME FAILED"
