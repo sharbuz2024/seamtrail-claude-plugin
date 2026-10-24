@@ -1,0 +1,164 @@
+{
+  "about": "SEAM-233 (founder 2026-10-24: \"just make sure no secrets and credentials\"): what is cut out of a message, on the person's computer, before its words go to SeamTrail as a search hint. Applied in this order by hint.js (node) and hint.py (python3) alike; {1} in a replacement is the first group. A regex here must mean the same in JavaScript and Python: no named groups, lookbehind of one character only. A rule with onlyIf \"digit and letter\" replaces a match only when it holds both (so a long plain word or path stays). A rule with skipUrls is not applied inside links (a document id in a link is not a secret; a secret in a link is caught by the link rules above).",
+  "rules": [
+    {
+      "name": "code block",
+      "pattern": "```[\\s\\S]*?(```|$)",
+      "flags": "",
+      "replace": " [code] "
+    },
+    {
+      "name": "code block (tildes)",
+      "pattern": "~~~[\\s\\S]*?(~~~|$)",
+      "flags": "",
+      "replace": " [code] "
+    },
+    {
+      "name": "key or certificate block",
+      "pattern": "-----BEGIN [A-Z0-9 ]+-----[\\s\\S]*?(-----END [A-Z0-9 ]+-----|$)",
+      "flags": "",
+      "replace": "[removed]"
+    },
+    {
+      "name": "user and password in a link",
+      "pattern": "([a-z][a-z0-9+.-]*://)[^\\s/@:]+:[^\\s/@]+@",
+      "flags": "i",
+      "replace": "{1}[removed]@"
+    },
+    {
+      "name": "secret in a link's query",
+      "pattern": "([?&](access_token|refresh_token|id_token|token|key|api_key|apikey|secret|client_secret|signature|sig|password|pwd|code|auth|session|x-amz-signature|x-amz-credential|x-amz-security-token)=)[^&\\s#]+",
+      "flags": "i",
+      "replace": "{1}[removed]"
+    },
+    {
+      "name": "authorization header",
+      "pattern": "(authorization\\s*[:=]\\s*)(bearer\\s+|basic\\s+|token\\s+)?[^\\s\"']+",
+      "flags": "i",
+      "replace": "{1}[removed]"
+    },
+    {
+      "name": "bearer token",
+      "pattern": "\\bbearer\\s+[a-z0-9._~+/=-]{8,}",
+      "flags": "i",
+      "replace": "Bearer [removed]"
+    },
+    {
+      "name": "Anthropic key",
+      "pattern": "\\bsk-ant-[a-z0-9_-]{10,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "OpenAI-style key",
+      "pattern": "\\bsk-(proj-|live-|test-|svcacct-|admin-)?[a-z0-9_-]{16,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "Stripe key",
+      "pattern": "\\b(sk|rk|pk|whsec)_(live|test)_[a-z0-9]{10,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "GitHub token",
+      "pattern": "\\b(gh[pousr]_[a-z0-9]{30,}|github_pat_[a-z0-9_]{20,})",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "GitLab token",
+      "pattern": "\\bglpat-[a-z0-9_-]{20,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "Slack token",
+      "pattern": "\\bxox[abposr]-[a-z0-9-]{10,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "Slack webhook",
+      "pattern": "https://hooks\\.slack\\.com/services/[A-Za-z0-9/_-]+",
+      "flags": "",
+      "replace": "[removed]"
+    },
+    {
+      "name": "AWS key id",
+      "pattern": "\\b(AKIA|ASIA|AGPA|AIDA|AROA|ANPA|ANVA|AIPA)[A-Z0-9]{16}\\b",
+      "flags": "",
+      "replace": "[removed]"
+    },
+    {
+      "name": "Google API key",
+      "pattern": "\\bAIza[0-9A-Za-z_-]{35}",
+      "flags": "",
+      "replace": "[removed]"
+    },
+    {
+      "name": "Google OAuth token",
+      "pattern": "\\bya29\\.[0-9A-Za-z_-]{20,}",
+      "flags": "",
+      "replace": "[removed]"
+    },
+    {
+      "name": "Atlassian API token",
+      "pattern": "\\bATATT[a-z0-9_=-]{20,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "SeamTrail token",
+      "pattern": "\\bst_mcp_[a-z0-9_-]{10,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "npm or Hugging Face token",
+      "pattern": "\\b(npm|hf)_[a-z0-9]{30,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "JSON Web Token",
+      "pattern": "\\beyJ[a-z0-9_-]{8,}\\.[a-z0-9_-]{8,}\\.[a-z0-9_-]{8,}",
+      "flags": "i",
+      "replace": "[removed]"
+    },
+    {
+      "name": "NAME_KEY=value",
+      "pattern": "\\b([A-Z][A-Z0-9_]*(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PASS|PWD|CREDENTIALS?)[A-Z0-9_]*\\s*[:=]\\s*)\\S+",
+      "flags": "",
+      "replace": "{1}[removed]"
+    },
+    {
+      "name": "secret = value",
+      "pattern": "\\b((password|passwd|pwd|passphrase|secret|client[_-]?secret|api[_-]?key|apikey|access[_-]?key|secret[_-]?key|private[_-]?key|auth[_-]?token|access[_-]?token|refresh[_-]?token|token|credentials?|session[_-]?id|cookie)[\"']?\\s*[:=]\\s*)[\"']?[^\\s\"',;]+[\"']?",
+      "flags": "i",
+      "replace": "{1}[removed]"
+    },
+    {
+      "name": "password said in words",
+      "pattern": "\\b(password|passcode|passphrase|pin|otp|secret)\\s+(is|was|=|:)\\s+\\S+",
+      "flags": "i",
+      "replace": "{1} [removed]"
+    },
+    {
+      "name": "card number",
+      "pattern": "\\b\\d(?:[ -]?\\d){12,18}\\b",
+      "flags": "",
+      "replace": "[removed]",
+      "skipUrls": true
+    },
+    {
+      "name": "long random string",
+      "pattern": "(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/=_-]{32,}",
+      "flags": "",
+      "replace": "[removed]",
+      "onlyIf": "digit and letter",
+      "skipUrls": true
+    }
+  ]
+}
