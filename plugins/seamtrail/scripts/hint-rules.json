@@ -1,5 +1,5 @@
 {
-  "about": "SEAM-233 (founder 2026-10-24: \"just make sure no secrets and credentials\"): what is cut out of a message, on the person's computer, before its words go to SeamTrail as a search hint. Applied in this order by hint.js (node) and hint.py (python3) alike; {1} in a replacement is the first group. A regex here must mean the same in JavaScript and Python: no named groups, lookbehind of one character only. A rule with onlyIf \"digit and letter\" replaces a match only when it holds both (so a long plain word or path stays). A rule with skipUrls is not applied inside links (a document id in a link is not a secret; a secret in a link is caught by the link rules above). The password rules cut a password said in words — \"the pass for stage is …\", \"the password he gave me is …\", \"use … as the password\", \"login with admin / …\", and in Hindi \"password hai …\" — and so may also cut a harmless word after \"password … is\": on purpose, since a lost word costs less than a kept password. No pattern can catch every way of writing a password.",
+  "about": "SEAM-233 (founder 2026-10-24: \"just make sure no secrets and credentials\"): what is cut out of a message, on the person's computer, before its words go to SeamTrail as a search hint. Applied in this order by hint.js (node) and hint.py (python3) alike; {1} in a replacement is the first group. A regex here must mean the same in JavaScript and Python: no named groups, lookbehind of one character only. A rule with onlyIf \"digit and letter\" replaces a match only when it holds both (so a long plain word or path stays). A rule with skipUrls is not applied inside links (a document id in a link is not a secret; a secret in a link is caught by the link rules above). The password rules cut a password said in words — \"the pass for stage is …\", \"the password he gave me is …\", \"use … as the password\", \"login with admin / …\", and in Hindi \"password hai …\" — and so may also cut a harmless word after \"password … is\": on purpose, since a lost word costs less than a kept password. No pattern can catch every way of writing a password. Every rule must stay fast on a long text with no spaces (founder 2026-10-25, SEAM-233: a rule that tried every position of a long word took minutes on 1 MB): start a match only at a word's start and keep repeats bounded.",
   "rules": [
     {
       "name": "code block",
@@ -21,7 +21,7 @@
     },
     {
       "name": "user and password in a link",
-      "pattern": "([a-z][a-z0-9+.-]*://)[^\\s/@:]+:[^\\s/@]+@",
+      "pattern": "(?<![a-z0-9+.-])([a-z][a-z0-9+.-]{0,30}://)[^\\s/@:]+:[^\\s/@]+@",
       "flags": "i",
       "replace": "{1}[removed]@"
     },
@@ -129,7 +129,7 @@
     },
     {
       "name": "NAME_KEY=value",
-      "pattern": "\\b([A-Z][A-Z0-9_]*(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PASS|PWD|CREDENTIALS?)[A-Z0-9_]*\\s*[:=]\\s*)\\S+",
+      "pattern": "\\b([A-Z][A-Z0-9_]{0,80}(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PASS|PWD|CREDENTIALS?)[A-Z0-9_]{0,80}\\s*[:=]\\s*)\\S+",
       "flags": "",
       "replace": "{1}[removed]"
     },
