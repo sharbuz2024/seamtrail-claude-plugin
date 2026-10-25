@@ -3,7 +3,7 @@
   "plugins": {
     "claude-code": {
       "name": "Claude Code",
-      "version": "0.7.6",
+      "version": "0.8.0",
       "update": [
         "claude plugin marketplace update seamtrail",
         "claude plugin update seamtrail@seamtrail"

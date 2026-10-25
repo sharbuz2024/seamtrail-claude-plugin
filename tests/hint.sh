@@ -120,18 +120,18 @@ os.chmod(f"{bin_}/curl", 0o755)
 def hook(prompt, path, code="200"):
     log = f"{T}/curl.log"
     open(log, "w").close()
-    env = dict(os.environ, PATH=path, CURL_LOG=log, POST_CODE=code, SEAMTRAIL_TOKEN="tok-1")
+    env = dict(os.environ, PATH=path, CURL_LOG=log, POST_CODE=code, SEAMTRAIL_TOKEN="tok-1", CLAUDE_PLUGIN_DATA=f"{T}/data")
     p = subprocess.run(["sh", f"{S}/message.sh"], input=json.dumps({"session_id": "c-9", "prompt": prompt}),
                        capture_output=True, text=True, env=env, timeout=30)
     return p.stdout, open(log).read()
 syspath = os.environ["PATH"]
 out, log = hook("fix SEAM-210 with password=hunter2 now", f"{bin_}:{syspath}")
 body = json.loads(log.split("BODY:", 1)[1].splitlines()[0]) if "BODY:" in log else {}
-check("message.sh: POSTs {chat, tickets, hint} in the body, never in the address", body.get("chat") == "c-9" and body.get("tickets") == "SEAM-210" and "fix SEAM-210" in body.get("hint", "") and "hint=" not in log.split("BODY:")[0], log)
+check("message.sh: POSTs {chat, messageId, tickets, hint} in the body, never in the address", body.get("chat") == "c-9" and len(body.get("messageId", "")) >= 8 and body.get("tickets") == "SEAM-210" and "fix SEAM-210" in body.get("hint", "") and "hint=" not in log.split("BODY:")[0], log)
 check("message.sh: the secret is not in what was sent", "hunter2" not in log, log)
 check("message.sh: SeamTrail's answer goes to Claude", out == "news for the chat", out)
 out, log = hook("fix SEAM-210", f"{bin_}:{syspath}", code="404")
-check("message.sh: an older SeamTrail (404) is asked the old way: chat id and ticket numbers only", log.count("ARGS:") == 2 and "-G" in log.splitlines()[-1] and "tickets=SEAM-210" in log.splitlines()[-1] and out == "old way answer", log)
+check("message.sh: an older SeamTrail (404) is asked the old way: chat id, message id and ticket numbers only", log.count("ARGS:") == 2 and "-G" in log.splitlines()[-1] and "tickets=SEAM-210" in log.splitlines()[-1] and "messageId=" in log.splitlines()[-1] and out == "old way answer", log)
 # Without node or python3: a PATH with only the basics (sh, sed, grep, curl stand-in).
 basic = f"{T}/basic"
 os.makedirs(basic, exist_ok=True)
@@ -141,7 +141,7 @@ for tool in ("sh", "sed", "grep", "head", "sort", "paste", "cat", "dirname", "mk
         os.symlink(w, f"{basic}/{tool}")
 os.symlink(f"{bin_}/curl", f"{basic}/curl")
 out, log = hook("fix SEAM-210 by changing the refund window", basic)
-check("message.sh: without node or python3, no words leave — only chat id and ticket numbers", "refund window" not in log and "tickets=SEAM-210" in log and "BODY:" not in log, log)
+check("message.sh: without node or python3, no words leave — only ids and ticket numbers", "refund window" not in log and "tickets=SEAM-210" in log and "BODY:" not in log, log)
 
 print("ALL PASSED" if not fail else "SOME FAILED")
 sys.exit(1 if fail else 0)

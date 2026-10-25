@@ -13,6 +13,10 @@
 # call leaves: hint.js (node) or hint.py (python3) cut out secrets, credentials and security data with the same rules as
 # the message (hint-rules.json). With only jq the line is left out; with no JSON tool at all the call goes as it is and
 # SeamTrail cuts them out before keeping anything.
+#
+# SEAM-233 (founder 2026-10-25: "build the plugin side on a branch"): the id of the person's latest message (made by
+# message.sh, waiting in turn-<chat>.json) goes with the call too, as messageId, so a note saved or a change made is
+# tied to that message. SeamTrail takes it out before the tool runs, like the chat id.
 
 input=$(cat)
 prefix='mcp__plugin_seamtrail_seamtrail__'
@@ -23,11 +27,16 @@ numbers=""
 if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl" ]; then
   numbers="$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl"
 fi
+# SEAM-233: the latest message's id, from message.sh.
+turn=""
+if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/turn-$session.json" ]; then
+  turn="$CLAUDE_PLUGIN_DATA/turn-$session.json"
+fi
 
 # node: wherever Claude Code was installed with npm.
 if command -v node >/dev/null 2>&1; then
   printf '%s' "$input" | node -e '
-    let s = ""; const [p, file, dir] = process.argv.slice(1);
+    let s = ""; const [p, file, dir, turn] = process.argv.slice(1);
     process.stdin.on("data", (d) => (s += d)).on("end", () => {
       try {
         const d = JSON.parse(s);
@@ -51,9 +60,16 @@ if command -v node >/dev/null 2>&1; then
             if (h) updatedInput.workingOn = h; else delete updatedInput.workingOn;
           } catch (e) { delete updatedInput.workingOn; }
         }
+        // SEAM-233: the latest message id, so what this call saves is tied to that message.
+        if (turn) {
+          try {
+            const m = String(JSON.parse(require("fs").readFileSync(turn, "utf8")).messageId || "");
+            if (/^[A-Za-z0-9_-]{8,100}$/.test(m)) updatedInput.messageId = m;
+          } catch (e) {}
+        }
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput } }));
       } catch (e) {}
-    });' "$prefix" "$numbers" "$here" 2>/dev/null
+    });' "$prefix" "$numbers" "$here" "$turn" 2>/dev/null
   exit 0
 fi
 
@@ -61,7 +77,7 @@ fi
 py=$(command -v python3 2>/dev/null)
 if [ -n "$py" ] && ! { [ "$(uname)" = Darwin ] && [ "$py" = /usr/bin/python3 ] && ! xcode-select -p >/dev/null 2>&1; }; then
   printf '%s' "$input" | "$py" -c '
-import json, sys
+import json, re, sys
 p = sys.argv[1]
 try:
     d = json.load(sys.stdin)
@@ -94,22 +110,35 @@ if d.get("session_id") and (str(d.get("tool_name") or "").startswith(p) or "seam
                 del i["workingOn"]
         except Exception:
             i.pop("workingOn", None)
+    # SEAM-233: the latest message id, so what this call saves is tied to that message.
+    if len(sys.argv) > 4 and sys.argv[4]:
+        try:
+            with open(sys.argv[4]) as f:
+                m = str(json.load(f).get("messageId") or "")
+            if re.fullmatch(r"[A-Za-z0-9_-]{8,100}", m):
+                i["messageId"] = m
+        except Exception:
+            pass
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": i}}))
-' "$prefix" "$numbers" "$here" 2>/dev/null
+' "$prefix" "$numbers" "$here" "$turn" 2>/dev/null
   exit 0
 fi
 # jq (on macOS 15 and later, and most Linux machines), when there is no node or python3 to clean Claude's line: the
 # line is left out (SEAM-233).
 if command -v jq >/dev/null 2>&1; then
   if [ -n "$numbers" ]; then set -- --slurpfile seen "$numbers"; else set -- --argjson seen '[]'; fi
+  # SEAM-233: the latest message id, from a turn file jq can read (a broken one is left out, never the call).
+  if [ -n "$turn" ] && jq -e . "$turn" >/dev/null 2>&1; then set -- "$@" --slurpfile turn "$turn"; else set -- "$@" --argjson turn '[]'; fi
   printf '%s' "$input" | jq -c --arg p "$prefix" "$@" '
     select((.session_id // "") != ""
       and (((.tool_name // "") | startswith($p))
         or ((.mcp_server.name // "") | ascii_downcase | contains("seamtrail"))))
     | ($seen | map(.k // []) | add // [] | unique | join(",")) as $keys
+    | (($turn[0].messageId? // "") | tostring) as $mid
     | {hookSpecificOutput: {hookEventName: "PreToolUse",
         updatedInput: ((.tool_input // {} | del(.workingOn)) + {chatId: .session_id}
-          + (if $keys != "" then {chatTickets: $keys} else {} end))}}' 2>/dev/null
+          + (if $keys != "" then {chatTickets: $keys} else {} end)
+          + (if ($mid | test("^[A-Za-z0-9_-]{8,100}$")) then {messageId: $mid} else {} end))}}' 2>/dev/null
   exit 0
 fi
 
