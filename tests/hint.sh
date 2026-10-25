@@ -60,7 +60,29 @@ WORDS = {
     "private key": ("key:\n-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA7\n-----END RSA PRIVATE KEY-----\ndone", "MIIEowIBAAKCAQEA7"),
     "code block": ("look:\n```js\nconst internalThing = connect('prod-db');\n```\nwhy?", "internalThing"),
     "unclosed code block": ("look:\n```\nconst leftOpen = 42;\nand more", "leftOpen"),
+    # A password said in words (founder 2026-10-25: "make the cleaner catch more password forms").
+    "pass for … is": ("the pass for stage is tiger123", "tiger123"),
+    "pwd for …:": ("pwd for the box: tiger", "tiger"),
+    "words between password and is": ("the password he gave me is tiger123", "tiger123"),
+    "value as the password": ("use hunter22 as the password", "hunter22"),
+    "value is my password": ("hunter22 is my password", "hunter22"),
+    "password then its value": ("set password Tiger123! now", "Tiger123!"),
+    "otp then its value": ("the otp 482913 expires soon", "482913"),
+    "pin for … is": ("pin for the card is 4321", "4321"),
+    "login with user / password": ("login with admin / tiger123", "tiger123"),
+    "sign in as user/password": ("sign in as admin/tiger123", "tiger123"),
+    "user … pass …": ("user admin pass tiger", "tiger"),
+    "default user and password": ("try admin/Passw0rd on stage", "Passw0rd"),
+    "default user:password, written together": ("root:toor works on the box", "toor"),
+    "credentials are …": ("credentials are admin:tiger", "tiger"),
+    "token for … is": ("the token for prod is abcd1234", "abcd1234"),
+    "Hindi: password hai …": ("password hai tiger123", "tiger123"),
+    "Hindi: password … hai": ("mera password tiger hai", "tiger"),
 }
+# Plain talk about passwords and logins stays as it is.
+KEEP = ["the tests pass and coverage is 80%", "fix the password reset email template", "login with Google and GitHub",
+        "the pass rate is 95% now", "pin the version to 1.2.3", "open the admin/settings page",
+        "the admin: please review it", "see postgres://db.example.com/app"]
 
 for name, cmd in tools:
     for label, secret in SECRETS.items():
@@ -70,6 +92,9 @@ for name, cmd in tools:
     for label, (msg, secret) in WORDS.items():
         out = run(cmd, msg)
         check(f"{name}: {label} never leaves", out is not None and secret not in out["hint"], json.dumps(out))
+    for msg in KEEP:
+        out = run(cmd, msg)
+        check(f"{name}: plain talk stays ({msg})", out is not None and out["hint"] == msg, json.dumps(out))
 
     # What the message is about stays: words, links, ticket numbers.
     msg = "fix the login redirect bug in SEAM-210, see https://sharbuz.atlassian.net/wiki/spaces/SE/pages/123/Refund+policy and PAY-4"
@@ -100,7 +125,8 @@ for name, cmd in tools:
 # node and python3 give the same hint.
 if len(tools) == 2:
     samples = ["fix it", "SEAM-1 and https://x.y/z?token=abc12345&a=1", "naïve café — résumé ✓ 😀 " * 40,
-               "```\ncode\n``` then words AKIAIOSFODNN7EXAMPLE", "password: x y", ("é " * 3500) + "end"]
+               "```\ncode\n``` then words AKIAIOSFODNN7EXAMPLE", "password: x y", ("é " * 3500) + "end",
+               "the pass for stage is tiger123, login with admin / x1", "mera password tiger hai, pin 4321 — use x9 as the password"]
     same = all(run(tools[0][1], m) == run(tools[1][1], m) for m in samples)
     check("node and python3 give the same hint", same)
 
