@@ -10,7 +10,7 @@
     {
       "name": "seamtrail",
       "source": "./plugins/seamtrail-vscode",
-      "description": "SeamTrail in VS Code (GitHub Copilot agent): your project's shared memory at chat start, and a reminder to save decisions at turn end.",
+      "description": "SeamTrail in VS Code (GitHub Copilot agent): your project's shared memory at chat start.",
       "version": "0.1.0"
     }
   ]

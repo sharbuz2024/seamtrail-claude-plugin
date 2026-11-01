@@ -2,6 +2,8 @@
 
 One plugin that connects Claude Code to SeamTrail, your team's shared memory of its projects.
 
+This repository also holds SeamTrail's plugins for Codex, Gemini CLI, Devin CLI, VS Code (Copilot), Cursor and Kiro, in `plugins/`. Each one's install steps are in SeamTrail: **Settings → Agents · MCP connector → Plugins**.
+
 - **At chat start**, the plugin registers this chat with SeamTrail: its id, its name (when you gave it one) and its folder. The name is shown only to you.
 - **At your first message in a new chat**, Claude asks you once: "Which SeamTrail project is this chat for?" — three of your projects (the folder's repository's project first, then the ones you used last), "No project" (saved only in your private memory), or type another. SeamTrail keeps your answer for this chat: reopen the chat and it is not asked again; after /clear, a chat with a name keeps its project.
 - **From then on**, Claude Code gets that project's context at chat start (where it stands, decisions with reasons, drift, your own tickets and news), and SeamTrail saves only into that project from this chat. Claude can still read other projects when you ask. To move the chat to another project, Claude asks you "Set project X for this chat from now on?" and switches only on your yes. Until you pick, SeamTrail reads but saves nothing from the chat.

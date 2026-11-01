@@ -8,7 +8,7 @@
     {
       "name": "seamtrail",
       "source": "./plugins/seamtrail",
-      "description": "SeamTrail in Claude Code: your project's shared memory at chat start, and a reminder to save decisions at turn end."
+      "description": "SeamTrail in Claude Code: your project's shared memory at chat start, and a reminder to save decisions with your next message."
     }
   ]
 }

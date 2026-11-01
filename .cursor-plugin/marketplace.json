@@ -10,7 +10,7 @@
     {
       "name": "seamtrail-cursor",
       "source": "./plugins/seamtrail-cursor",
-      "description": "SeamTrail in Cursor: your project's shared memory at chat start, and a reminder to save decisions at turn end."
+      "description": "SeamTrail in Cursor: your project's shared memory at chat start."
     }
   ]
 }
