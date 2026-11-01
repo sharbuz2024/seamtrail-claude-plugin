@@ -28,11 +28,11 @@
       "name": "VS Code",
       "version": "0.1.0",
       "update": [
-        "Extensions: Check for Extension Updates"
+        "Chat: Update Plugins"
       ],
       "where": "in VS Code's Command Palette (Cmd+Shift+P on a Mac, Ctrl+Shift+P elsewhere)",
       "after": "start a new chat",
-      "autoUpdate": "keep VS Code's setting extensions.autoUpdate on: VS Code then checks every day",
+      "autoUpdate": "keep VS Code's setting extensions.autoUpdate on",
       "tried": false
     },
     "codex": {
