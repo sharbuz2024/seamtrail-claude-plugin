@@ -4,8 +4,7 @@
 # since it last looked, and the latest still-true memory about the tickets the message names — and hands it to the
 # agent: Kiro adds what a UserPromptSubmit command prints to the agent's context. Sends the chat id, the ticket
 # numbers in the message and a search hint cut from the message on this computer first (hint.sh: no code blocks, secrets or credentials; SEAM-233); without node or python3, never its words. Adds nothing when there is nothing to tell.
-# For Kiro also: a message from the person starts a new turn, so the turn-end check (stop.sh) may ask once again — but
-# not the turn-end reminder itself, which Kiro hands back to the agent as a new message; and a chat Kiro started without
+# For Kiro also: a chat Kiro started without
 # its SessionStart hook is registered here first (start.sh). Silent on any failure — a hook must never get in the way.
 
 input=$(cat)
@@ -17,11 +16,6 @@ case "$session" in *[!A-Za-z0-9_-]*) session="" ;; esac
 # The person's message: the hook's "prompt", still escaped as JSON (Kiro IDE 0.x gave it in USER_PROMPT instead).
 prompt=$(printf '%s' "$input" | sed -n -E 's/.*"prompt"[[:space:]]*:[[:space:]]*"(([^"\\]|\\.)*)".*/\1/p' | head -c 20000)
 [ -n "$prompt" ] || prompt=$(printf '%s' "$USER_PROMPT" | head -c 20000)
-# The turn-end reminder coming back as a message is SeamTrail's own, not the person's: nothing to do.
-case "$prompt" in *"SeamTrail: nothing was saved this turn."*) exit 0 ;; esac
-# A message from the person starts a new turn: the turn-end check may ask once again.
-if [ -n "$prompt" ]; then rm -f "$data/asked-$session"; fi
-
 # Kiro started this chat without its SessionStart hook: register it now; its text goes with this message.
 [ -f "$data/started-$session" ] || printf '%s' "$input" | sh "$(dirname "$0")/start.sh"
 
@@ -56,5 +50,7 @@ case "$code" in
       --data-urlencode "chat=$session" \
       --data-urlencode "tickets=$tickets" 2>/dev/null) ;;
 esac
-printf '%s' "$answer"
+# SEAM-215: the save reminder, when the last turn saved nothing, goes with this message (remind.sh).
+note=$(sh "$(dirname "$0")/remind.sh" "$data" "$session")
+if [ -n "$answer" ] && [ -n "$note" ]; then printf '%s\n\n%s' "$answer" "$note"; else printf '%s%s' "$answer" "$note"; fi
 exit 0

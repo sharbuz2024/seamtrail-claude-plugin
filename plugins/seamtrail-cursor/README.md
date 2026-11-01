@@ -4,7 +4,7 @@ One plugin that connects Cursor to SeamTrail, your team's shared memory of its p
 
 - **At chat start**, the plugin registers the chat with SeamTrail (its id and folder, as a Cursor chat) and gives the agent the chat's project context — or, before you pick, the question "Which SeamTrail project is this chat for?".
 - **On every call the agent makes to SeamTrail's tools**, the plugin adds the chat's id and the ticket numbers in your last 3 messages and the agent's last 3 replies — numbers only, read on your computer — so SeamTrail knows which chat a note came from and brings it the news about its work. Only SeamTrail's tools are touched, and Cursor still asks you before tools run as it always does.
-- **At turn end**, when nothing was saved to SeamTrail — no note, and no change SeamTrail made for you — the agent is asked once to remember what was decided, learned or blocked into the chat's project. Cursor sends this request as your next message, so you see it in the chat. It is never sent twice in a row, after you stop a turn, or while the agent is waiting for your answer. With "No project", or before you pick, it is never sent.
+- **Saving:** the agent is told at chat start to save what was decided, learned or blocked into the chat's project. There is no reminder later: a Cursor hook can add a note only when a chat starts, and at the end of a turn a reminder could only be sent as a message in your name, so the plugin sends none.
 
 No conversation text is sent anywhere by the hooks. What they keep on your computer (the chat's project, ticket numbers, "saved this turn") is in `~/.local/state/seamtrail/cursor`.
 

@@ -1,7 +1,7 @@
 {
   "name": "seamtrail",
   "version": "0.1.0",
-  "description": "SeamTrail, your team's shared memory, in Codex: each chat asks once which SeamTrail project it is for, then gets that project's context, the news that touches its own work, and at every message the latest memory about the tickets you name — and what each message is about — from a hint cut from that message on your computer, with no code, secrets or credentials — saves only into it, and is reminded at turn end to save what was decided.",
+  "description": "SeamTrail, your team's shared memory, in Codex: each chat asks once which SeamTrail project it is for, then gets that project's context, the news that touches its own work, and at every message the latest memory about the tickets you name — and what each message is about — from a hint cut from that message on your computer, with no code, secrets or credentials — saves only into it, and is reminded with the next message to save what was decided.",
   "keywords": ["memory", "decisions", "project context", "team"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "SeamTrail",
     "shortDescription": "Your team's shared project memory: decisions and why, drift, blockers, tickets.",
-    "longDescription": "Connects Codex to SeamTrail (mcp.seamtrail.com) with your SeamTrail token. At chat start the chat gets its project's context; at each message, what is new on its work; at turn end, one reminder to save what was decided, learned or blocked. Needs SEAMTRAIL_TOKEN in your environment and its hooks trusted once in /hooks.",
+    "longDescription": "Connects Codex to SeamTrail (mcp.seamtrail.com) with your SeamTrail token. At chat start the chat gets its project's context; at each message, what is new on its work; with the next message, one reminder to save what the last turn decided, learned or blocked. Needs SEAMTRAIL_TOKEN in your environment and its hooks trusted once in /hooks.",
     "developerName": "SeamTrail",
     "category": "Productivity",
     "websiteURL": "https://seamtrail.com"

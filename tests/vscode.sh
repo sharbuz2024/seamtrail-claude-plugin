@@ -144,9 +144,8 @@ assert not os.path.exists(os.path.join(p, ".mcp.json")) and not os.path.exists(o
 h = json.load(open(os.path.join(p, "com.github.copilot", "hooks", "hooks.json")))
 assert h["version"] == 1 and set(h) == {"version", "hooks"}
 # The camelCase names VS Code's plugin parser and the Copilot harness both take.
-assert set(h["hooks"]) == {"sessionStart", "userPromptSubmitted", "preToolUse", "postToolUse", "agentStop"}, set(h["hooks"])
-want = {"sessionStart": ["start.sh"], "userPromptSubmitted": ["tickets.sh person"], "preToolUse": ["guard.sh"],
-        "postToolUse": ["saved.sh", "saved.sh change", "picked.sh"], "agentStop": ["stop.sh"]}
+assert set(h["hooks"]) == {"sessionStart", "userPromptSubmitted", "preToolUse"}, set(h["hooks"])
+want = {"sessionStart": ["start.sh"], "userPromptSubmitted": ["tickets.sh person"], "preToolUse": ["guard.sh"]}
 for event, entries in h["hooks"].items():
     got = []
     for e in entries:
@@ -172,32 +171,26 @@ printf '%s' "$out" | is "Copilot harness: SeamTrail's text is the chat's context
 VV=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$P/plugin.json"); export VV  # SEAM-273
 last | is "registers the chat as a VS Code chat: chat id, folder, git remote and branch, assistant=vscode, the plugin's version, the token" \
   'd["path"] == "/mcp/hook/start" and d["query"] == {"remote": "git@github.com:acme/pay.git", "branch": "PAY-4-checkout", "chat": "chat-1", "folder": env["T"] + "/repo", "assistant": "vscode", "version": env["VV"]} and d["auth"] == "Bearer test-token"'
-printf '%s\n%s\n' "$PID" "$PNAME" > "$T/want"
-yes_ "keeps the chat's project (id and name, as SeamTrail sent them) for the turn-end check" 'cmp -s "$T/want" "$D/project-chat-1"'
 out=$(s_start chat-2 | "$SH" "$S/start.sh")
 printf '%s' "$out" | is "Local harness (snake_case): the same context, also inside hookSpecificOutput" \
   'd == {"additionalContext": body, "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": body}}'
-: > "$D/saved-chat-3"; printf 'x\n\n' > "$D/project-chat-3"; n=$(count)
+n=$(count)
 out=$(c_start chat-3 | SEAMTRAIL_TOKEN= "$SH" "$S/start.sh")
-yes_ "without a token: says nothing, calls nothing, and the chat still starts clean" \
-  '[ -z "$out" ] && [ "$(count)" = "$n" ] && [ ! -f "$D/saved-chat-3" ] && [ ! -f "$D/project-chat-3" ]'
+yes_ "without a token: says nothing, calls nothing" \
+  '[ -z "$out" ] && [ "$(count)" = "$n" ]'
 out=$(c_start err-1 | "$SH" "$S/start.sh"); rc=$?
-yes_ "SeamTrail fails: silent, exit 0, no project kept" '[ -z "$out" ] && [ "$rc" = 0 ] && [ ! -f "$D/project-err-1" ]'
+yes_ "SeamTrail fails: silent, exit 0" '[ -z "$out" ] && [ "$rc" = 0 ]'
 out=$(c_start empty-1 | "$SH" "$S/start.sh")
 empty "nothing to say: no context added" "$out"
-c_start ask-1 | "$SH" "$S/start.sh" > /dev/null
-yes_ "more than one project (an older SeamTrail): kept as \"ask\"" '[ "$(sed -n 1p "$D/project-ask-1")" = ask ]'
-c_start none-1 | "$SH" "$S/start.sh" > /dev/null
-yes_ "no project: nothing kept, so the turn end never asks" '[ ! -f "$D/project-none-1" ]'
 (cd "$R" && printf '{"sessionId":"chat-pwd"}' | "$SH" "$S/start.sh" > /dev/null)
 last | is "no cwd in the input: the hook's own folder (VS Code runs hooks in the workspace)" \
   'd["query"]["folder"] == env["T"] + "/repo" and d["query"]["remote"] == "git@github.com:acme/pay.git"'
-c_start chat-p | env -u COPILOT_PLUGIN_DATA PLUGIN_DATA="$T/pdata" "$SH" "$S/start.sh" > /dev/null
-yes_ "data folder: PLUGIN_DATA when COPILOT_PLUGIN_DATA is not set" '[ -f "$T/pdata/project-chat-p" ]'
-c_start chat-x | env -u COPILOT_PLUGIN_DATA -u PLUGIN_DATA XDG_STATE_HOME="$T/xdg" "$SH" "$S/start.sh" > /dev/null
-yes_ "data folder: \$XDG_STATE_HOME/seamtrail/vscode when VS Code gives none" '[ -f "$T/xdg/seamtrail/vscode/project-chat-x" ]'
-c_start chat-h | env -u COPILOT_PLUGIN_DATA -u PLUGIN_DATA -u XDG_STATE_HOME HOME="$T/home" "$SH" "$S/start.sh" > /dev/null
-yes_ "data folder: ~/.local/state/seamtrail/vscode by default" '[ -f "$T/home/.local/state/seamtrail/vscode/project-chat-h" ]'
+c_prompt chat-p "About PAY-4" | env -u COPILOT_PLUGIN_DATA PLUGIN_DATA="$T/pdata" "$SH" "$S/tickets.sh" person
+yes_ "data folder: PLUGIN_DATA when COPILOT_PLUGIN_DATA is not set" '[ -f "$T/pdata/tickets-chat-p.jsonl" ]'
+c_prompt chat-x "About PAY-4" | env -u COPILOT_PLUGIN_DATA -u PLUGIN_DATA XDG_STATE_HOME="$T/xdg" "$SH" "$S/tickets.sh" person
+yes_ "data folder: \$XDG_STATE_HOME/seamtrail/vscode when VS Code gives none" '[ -f "$T/xdg/seamtrail/vscode/tickets-chat-x.jsonl" ]'
+c_prompt chat-h "About PAY-4" | env -u COPILOT_PLUGIN_DATA -u PLUGIN_DATA -u XDG_STATE_HOME HOME="$T/home" "$SH" "$S/tickets.sh" person
+yes_ "data folder: ~/.local/state/seamtrail/vscode by default" '[ -f "$T/home/.local/state/seamtrail/vscode/tickets-chat-h.jsonl" ]'
 
 echo "— the tickets the person names (tickets.sh person)"
 for b in $tools; do
@@ -250,103 +243,12 @@ empty "no chat id: untouched" "$out"
 out=$(c_pre g1 seamtrail-remember '{"note":"x"}' | PATH="$T/bin-none" "$SH" "$S/guard.sh"); rc=$?
 yes_ "no JSON tool: untouched, exit 0 (a failing guard would deny the call)" '[ -z "$out" ] && [ "$rc" = 0 ]'
 
-echo "— after SeamTrail tools: saved this turn (saved.sh, saved.sh change)"
-sv() { if [ -f "$D/saved-sv" ]; then got=saved; else got=not; fi; if [ "$got" = "$2" ]; then ok "$1 → $got"; else bad "$1 → $got (wanted $2)"; fi; rm -f "$D/saved-sv"; }
-note_text='"{\"memoryId\":\"m1\",\"kind\":\"fact\"}"'
-for t in seamtrail-remember seamtrail-resolve mcp_seamtrail_settle_question mcp__seamtrail__widen_memory; do
-  c_post sv "$t" '{"note":"x"}' "$(ok_text "$note_text")" | "$SH" "$S/saved.sh"; sv "$t" saved
-done
-c_post sv memory-remember '{"note":"x"}' "$(ok_text "$note_text")" | "$SH" "$S/saved.sh"; sv "another server's remember" not
-c_post sv editFiles '{"path":"seamtrail/remember"}' "$(ok_text '"ok"')" | "$SH" "$S/saved.sh"; sv "another tool whose input mentions seamtrail/remember" not
-c_post sv seamtrail-remember '{"note":"x"}' '{"resultType":"failure","textResultForLlm":"refused"}' | "$SH" "$S/saved.sh"; sv "remember that failed" not
-change='"{\"answer\":\"Done: moved\",\"did\":[{\"what\":\"move ticket\",\"done\":true,\"verified\":true}]}"'
-c_post sv seamtrail-ask_seamtrail '{"question":"x"}' "$(ok_text "$change")" | "$SH" "$S/saved.sh"; sv "saved.sh (notes) after ask_seamtrail — VS Code runs every after-tool hook" not
-c_post sv seamtrail-set_chat_project "{\"projectId\":\"$PID\"}" "$(ok_text '"ok"')" | "$SH" "$S/saved.sh"; sv "saved.sh (notes) after set_chat_project" not
-c_post sv seamtrail-remember '{"note":"x"}' "$(ok_text "$note_text")" | "$SH" "$S/saved.sh" change; sv "saved.sh change after remember" not
-c_post sv seamtrail-ask_seamtrail '{"question":"x"}' "$(ok_text '"{\"answer\":\"No ticket found\",\"checked\":[\"search_jira\"]}"')" | "$SH" "$S/saved.sh" change; sv "ask_seamtrail, a question only" not
-c_post sv seamtrail-ask_seamtrail '{"question":"x"}' "$(ok_text "$change")" | "$SH" "$S/saved.sh" change; sv "ask_seamtrail, a real change (Copilot textResultForLlm)" saved
-s_post sv mcp_seamtrail_ask_seamtrail '{"question":"x"}' '[{"type":"text","text":"{\"did\":[{\"what\":\"move\",\"done\":true}]}"}]' | "$SH" "$S/saved.sh" change; sv "ask_seamtrail, a real change (Local, content blocks)" saved
-s_post sv mcp_seamtrail_ask_seamtrail '{"question":"x"}' '{"structuredContent":{"did":[{"what":"move","done":true}]}}' | "$SH" "$S/saved.sh" change; sv "ask_seamtrail, a real change (Local, structured)" saved
-c_post sv seamtrail-ask_seamtrail '{"question":"x"}' "$(ok_text '"{\"answer\":\"Not done\",\"did\":[{\"what\":\"move\",\"done\":false,\"error\":\"Jira refused\"}]}"')" | "$SH" "$S/saved.sh" change; sv "ask_seamtrail, a change that failed" not
-c_post sv seamtrail-ask_seamtrail '{"question":"x"}' "$(ok_text '"{\"tool\":\"promotion_rules\",\"result\":{\"checklist\":[{\"label\":\"flag\",\"done\":true}]}}"')" | "$SH" "$S/saved.sh" change; sv "ask_seamtrail, a read that happens to hold done:true" not
-c_post sv seamtrail-undo_change '{"handle":"h"}' "$(ok_text '"Undone — reading it back confirms it."')" | "$SH" "$S/saved.sh" change; sv "undo_change" saved
-s_post sv mcp_seamtrail_undo_change '{"handle":"h"}' '{"isError":true,"content":[{"type":"text","text":"That is not an undo handle"}]}' | "$SH" "$S/saved.sh" change; sv "undo_change that failed (Local isError)" not
-c_post sv seamtrail-undo_change '{"handle":"h"}' '{"resultType":"failure","textResultForLlm":"That is not an undo handle"}' | "$SH" "$S/saved.sh" change; sv "undo_change that failed (Copilot resultType)" not
-printf '{"timestamp":"2026-10-22T10:00:00.000Z","cwd":"/w","session_id":"sv","hook_event_name":"PostToolUse","tool_name":"seamtrail-remember","tool_input":{"note":"x"},"tool_result":{"result_type":"success","text_result_for_llm":"{\\"memoryId\\":\\"m1\\"}"}}' | "$SH" "$S/saved.sh"
-sv "remember (Copilot harness, Claude-style names: tool_result)" saved
-
-echo "— after set_chat_project: the chat's project (picked.sh)"
-P2=22222222-3333-4444-5555-666666666666
-P3=33333333-4444-5555-6666-777777777777
-pk() { if [ -f "$D/project-pk" ]; then sed -n 1p "$D/project-pk"; else echo none; fi; }
-c_post pk seamtrail-set_chat_project "\"{\\\"projectId\\\":\\\"$P2\\\"}\"" "$(ok_text '"Set."')" | "$SH" "$S/picked.sh"
-yes_ "Copilot harness, arguments as a JSON string: the picked project is kept (id, empty name)" '[ "$(cat "$D/project-pk")" = "$P2" ] && [ "$(wc -l < "$D/project-pk" | tr -d " ")" = 2 ]'
-c_post pk seamtrail-set_chat_project "{\"projectId\":\"$P3\"}" "$(ok_text '"Set."')" | "$SH" "$S/picked.sh"
-yes_ "Copilot harness, arguments as an object" '[ "$(pk)" = "$P3" ]'
-s_post pk mcp_seamtrail_set_chat_project "{\"projectId\":\"$P2\"}" '"Set."' | "$SH" "$S/picked.sh"
-yes_ "Local harness" '[ "$(pk)" = "$P2" ]'
-c_post pk seamtrail-remember "{\"note\":\"x\",\"projectId\":\"$P3\"}" "$(ok_text "$note_text")" | "$SH" "$S/picked.sh"
-yes_ "another SeamTrail tool with a projectId: the chat's project is untouched" '[ "$(pk)" = "$P2" ]'
-c_post pk other-set_chat_project "{\"projectId\":\"$P3\"}" "$(ok_text '"Set."')" | "$SH" "$S/picked.sh"
-yes_ "another server's set_chat_project: untouched" '[ "$(pk)" = "$P2" ]'
-c_post pk editFiles "{\"path\":\"seamtrail/set_chat_project\",\"projectId\":\"$P3\"}" "$(ok_text '"ok"')" | "$SH" "$S/picked.sh"
-yes_ "another tool whose input mentions seamtrail and a projectId: untouched" '[ "$(pk)" = "$P2" ]'
-c_post pk seamtrail-set_chat_project "{\"projectId\":\"$P3\"}" '{"resultType":"failure","textResultForLlm":"Not on that project"}' | "$SH" "$S/picked.sh"
-yes_ "refused: untouched" '[ "$(pk)" = "$P2" ]'
-c_post pk seamtrail-set_chat_project '{"none":true}' "$(ok_text "\"{\\\"projectId\\\":\\\"$P3\\\"}\"")" | "$SH" "$S/picked.sh"
-yes_ "\"No project\": forgotten, even when the reply names a project" '[ "$(pk)" = none ]'
-s_post pk mcp_seamtrail_set_chat_project '{"none":true}' "{\"projectId\":\"$P3\"}" | "$SH" "$S/picked.sh"
-yes_ "\"No project\" (Local, a structured reply with a projectId): still none" '[ "$(pk)" = none ]'
-
-echo "— turn end (stop.sh), the Claude Code plugin's words"
-mkdir -p "$T/tpl"
-same_as_template() { # name, vs-out — the template's stop.sh on the same project file must give the same reason
-  cp "$D/project-st" "$T/tpl/project-st" 2>/dev/null
-  tpl=$(printf '{"session_id":"st","stop_hook_active":false}' | CLAUDE_PLUGIN_DATA="$T/tpl" "$SH" "$TPL/stop.sh")
-  printf '%s\n%s' "$2" "$tpl" | is "$1" 'json.loads(raw.split(chr(10))[0])["reason"] == json.loads(raw.split(chr(10))[1])["reason"]'
-}
-printf '%s\n%s\n' "$PID" "$PNAME" > "$D/project-st"
-out=$(c_stop st false | "$SH" "$S/stop.sh")
-printf '%s' "$out" | is "Copilot harness: asks once, top-level decision block, names the project (JSON-escaped name decoded)" \
-  'list(d) == ["decision", "reason"] and d["decision"] == "block" and "with projectId 11111111-2222-3333-4444-555555555555 (the project “Pay \"v2\" café”)" in d["reason"] and "This chat saves only into that project: if something belongs to another project, tell your person instead" in d["reason"]'
-same_as_template "Copilot harness: the reason is word for word the Claude Code plugin's" "$out"
-out=$(s_stop st false | "$SH" "$S/stop.sh")
-printf '%s' "$out" | is "Local harness: also inside hookSpecificOutput (Stop)" \
-  'd["decision"] == "block" and d["hookSpecificOutput"] == {"hookEventName": "Stop", "decision": "block", "reason": d["reason"]}'
-out=$(c_stop st true | "$SH" "$S/stop.sh")
-empty "asked once already this turn (stop_hook_active): never twice" "$out"
-: > "$D/saved-st"
-out=$(c_stop st false | "$SH" "$S/stop.sh")
-yes_ "saved this turn: quiet, and the next turn starts clean" '[ -z "$out" ] && [ ! -f "$D/saved-st" ]'
-printf 'ask\n\n' > "$D/project-st"
-out=$(c_stop st false | "$SH" "$S/stop.sh")
-printf '%s' "$out" | is "two projects matched (an older SeamTrail): the same words as before" '"more than one SeamTrail project" in d["reason"]'
-same_as_template "two projects matched: word for word the Claude Code plugin's" "$out"
-printf '%s\n\n' "$P2" > "$D/project-st"
-out=$(c_stop st false | "$SH" "$S/stop.sh")
-same_as_template "a project picked in the chat (id only): word for word the Claude Code plugin's" "$out"
-rm -f "$D/project-st"
-out=$(c_stop st false | "$SH" "$S/stop.sh")
-empty "no project: never asks" "$out"
-
 echo "— one chat from start to end (Copilot harness)"
 c_start flow | "$SH" "$S/start.sh" > /dev/null
 c_prompt flow "Let us finish PAY-4" | "$SH" "$S/tickets.sh" person
 out=$(c_pre flow seamtrail-remember '{"note":"PAY-4 ships Friday"}' | "$SH" "$S/guard.sh")
 printf '%s' "$out" | is "the call carries the chat and its ticket" 'd["modifiedArgs"] == {"note": "PAY-4 ships Friday", "chatId": "flow", "chatTickets": "PAY-4"}'
-c_post flow seamtrail-remember '{"note":"PAY-4 ships Friday"}' "$(ok_text "$note_text")" | "$SH" "$S/saved.sh"
-out=$(c_stop flow false | "$SH" "$S/stop.sh")
-empty "turn 1: a note was saved, so no reminder" "$out"
-out=$(c_stop flow false | "$SH" "$S/stop.sh")
-printf '%s' "$out" | is "turn 2: nothing saved, so one reminder naming the project" 'd["decision"] == "block" and "11111111-2222-3333-4444-555555555555" in d["reason"]'
-out=$(c_stop flow true | "$SH" "$S/stop.sh")
-empty "turn 2, after the reminder: never twice" "$out"
-c_post flow seamtrail-set_chat_project "{\"projectId\":\"$P3\"}" "$(ok_text '"Set."')" | "$SH" "$S/picked.sh"
-out=$(c_stop flow false | "$SH" "$S/stop.sh")
-printf '%s' "$out" | is "turn 3: the person switched the chat's project: the reminder names the new one" '"with projectId 33333333-4444-5555-6666-777777777777:" in d["reason"]'
-c_post flow seamtrail-set_chat_project '{"none":true}' "$(ok_text '"Set."')" | "$SH" "$S/picked.sh"
-out=$(c_stop flow false | "$SH" "$S/stop.sh")
-empty "turn 4: \"No project\": never asks" "$out"
+yes_ "no turn-end hook: nothing can stop the agent" '[ ! -f "$S/stop.sh" ] && [ ! -f "$S/saved.sh" ] && [ ! -f "$S/picked.sh" ]'
 
 echo "— the hook commands as VS Code runs them"
 mkdir -p "$T/with space"; cp -R "$P" "$T/with space/seamtrail-vscode"
@@ -372,13 +274,11 @@ for mode in vscode shell; do
   printf '%s' "$out" | is "$mode: sessionStart from a folder with a space gives the context" 'd["additionalContext"] == body'
   out=$(c_pre cmd-$mode seamtrail-remember '{"note":"x"}' | PLUGIN_ROOT="$SP" PATH="$T/bin-jq" "$SH" -c "$(cmd preToolUse 0 $mode)")
   printf '%s' "$out" | is "$mode: preToolUse tags SeamTrail's call" 'd == {"modifiedArgs": {"note": "x", "chatId": "cmd-'"$mode"'"}}'
-  out=$(c_stop cmd-$mode false | PLUGIN_ROOT="$SP" PATH="$T/bin-jq" "$SH" -c "$(cmd agentStop 0 $mode)")
-  printf '%s' "$out" | is "$mode: agentStop asks once" 'd["decision"] == "block"'
 done
 out=$(c_pre cmd-x seamtrail-remember '{"note":"x"}' | env -u PLUGIN_ROOT PATH="$T/bin-jq" "$SH" -c "$(cmd preToolUse 0 shell)" 2>/dev/null); rc=$?
 yes_ "a plugin folder that cannot be found: preToolUse still exits 0 with nothing (the tool call is not denied)" '[ -z "$out" ] && [ "$rc" = 0 ]'
 rc=0
-for e in sessionStart:0 userPromptSubmitted:0 preToolUse:0 postToolUse:0 postToolUse:1 postToolUse:2 agentStop:0; do
+for e in sessionStart:0 userPromptSubmitted:0 preToolUse:0; do
   printf '{"sessionId":"cmd-all","toolName":"bash","toolArgs":{},"prompt":"hi"}' | PLUGIN_ROOT="$SP" PATH="$T/bin-jq" "$SH" -c "$(cmd "${e%:*}" "${e#*:}" vscode)" > /dev/null 2>&1 || rc=1
 done
 yes_ "every hook command exits 0" '[ "$rc" = 0 ]'
@@ -389,8 +289,6 @@ if printf '%s' "$o" | python3 -I -c 'import json,sys; json.loads(sys.stdin.read(
 last | python3 -I -c 'import json,sys; q=json.load(sys.stdin)["query"]; print("note start.sh sends no assistant: SeamTrail labels the chat Claude Code" if "assistant" not in q else "note start.sh sends assistant")'
 o=$(c_pre tpl-1 seamtrail-remember '{"note":"x"}' | "$SH" "$TPL/guard.sh")
 [ -z "$o" ] && echo "note guard.sh adds no chatId: VS Code's tool names and input fields are not Claude Code's"
-o=$(c_stop tpl-1 false | env -u COPILOT_PLUGIN_DATA "$SH" "$TPL/stop.sh")
-[ -z "$o" ] && echo "note stop.sh never asks: VS Code sets no CLAUDE_PLUGIN_DATA, so nothing is kept (no project, no saved mark)"
 
 [ "$fail" = 0 ] && echo "ALL PASSED ($SH)" || echo "SOME FAILED ($SH)"
 [ "$fail" = 0 ]

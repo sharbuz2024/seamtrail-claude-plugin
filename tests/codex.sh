@@ -314,37 +314,36 @@ assert d['hookSpecificOutput']['updatedInput'] == {'projectId': 'p', 'chatId': '
   post_in mcp__seamtrail__set_chat_project '{"projectId":"0b1c2d3e-0000-4000-8000-000000000000"}' '{"content":[{"type":"text","text":"Not your project"}],"isError":true}' | PLUGIN_DATA="$D" $SH "$P/scripts/picked.sh"
   if cmp -s "$D/project-$S" "$W/want-project"; then ok "picked: a refused pick changes nothing"; else bad "picked after a refusal: [$(cat "$D/project-$S")]"; fi
   post_in mcp__seamtrail__set_chat_project '{"none":true}' '{"content":[{"type":"text","text":"No project for this chat."}]}' | PLUGIN_DATA="$D" $SH "$P/scripts/picked.sh"
-  if [ ! -f "$D/project-$S" ]; then ok "picked: \"No project\" → the turn-end check stays quiet"; else bad "picked no project"; fi
+  if [ ! -f "$D/project-$S" ]; then ok "picked: \"No project\" → no reminder"; else bad "picked no project"; fi
 
-  # ── stop.sh: the same words as the Claude Code plugin's, byte for byte, and a reply Codex takes
-  stop_case() { # name, project id (- for none), project name, saved (yes|no), stop_hook_active, wanted (ask|quiet)
+  # ── stop.sh never stops the agent; remind.sh brings the reminder with the next message, in the Claude Code plugin's words
+  stop_case() { # name, project id (- for none), project name, saved (yes|no), wanted (remind|quiet), text the reminder must hold
     for d in "$W/st-c" "$W/st-t"; do
       rm -rf "$d"; mkdir -p "$d"
       [ "$2" = - ] || printf '%s\n%s\n' "$2" "$3" > "$d/project-$S"
       [ "$4" = yes ] && : > "$d/saved-$S"
     done
-    in=$(stop_in "$5" 'Done with PAY-4.')
+    in=$(stop_in false 'Done with PAY-4.')
     out=$(printf '%s' "$in" | PLUGIN_DATA="$W/st-c" $SH "$P/scripts/stop.sh")
-    tout=$(printf '%s' "$in" | CLAUDE_PLUGIN_DATA="$W/st-t" sh "$T/scripts/stop.sh")
-    if [ "$out" != "$tout" ]; then bad "stop: $1 — differs from the Claude Code plugin: [$out] vs [$tout]"; return; fi
-    if [ -f "$W/st-c/saved-$S" ] || [ -f "$W/st-t/saved-$S" ]; then bad "stop: $1 — the saved marker was not cleared"; return; fi
-    if [ "$6" = quiet ]; then check "stop: $1 → quiet (same as the Claude Code plugin)" "$out" ""; return; fi
-    pyck "stop: $1 → asks once, same words as the Claude Code plugin, as {decision: block, reason}" "$out" "
-assert set(d) == {'decision', 'reason'} and d['decision'] == 'block' and d['reason'].strip(), d
-assert d['reason'].startswith('SeamTrail: nothing was saved this turn.'), d
-$7"
+    printf '%s' "$in" | CLAUDE_PLUGIN_DATA="$W/st-t" sh "$T/scripts/stop.sh" > /dev/null
+    check "stop: $1 → never stops the agent" "$out" ""
+    if [ -f "$W/st-c/saved-$S" ]; then bad "stop: $1 — the saved marker was not cleared"; return; fi
+    note=$($SH "$P/scripts/remind.sh" "$W/st-c" "$S")
+    tnote=$(printf '{"session_id":"%s"}' "$S" | CLAUDE_PLUGIN_DATA="$W/st-t" sh "$T/scripts/remind.sh")
+    if [ "$note" != "$tnote" ]; then bad "remind: $1 — differs from the Claude Code plugin: [$note] vs [$tnote]"; return; fi
+    if [ "$5" = quiet ]; then check "remind: $1 → no reminder" "$note" ""; return; fi
+    case "$note" in
+      *"$6"*) ok "remind: $1 → with the next message, the Claude Code plugin's words" ;;
+      *) bad "remind: $1 — no [$6] in [$note]" ;;
+    esac
+    check "remind: $1 → never twice" "$($SH "$P/scripts/remind.sh" "$W/st-c" "$S")" ""
   }
-  stop_case "a picked project with its name" "$PID" "Caf${BS}u00e9 ${BS}\"Pay${BS}\" ${BS}u2014 web" no false ask "
-assert 'projectId $PID (the project “Café \"Pay\" — web”)' in d['reason'], d['reason']
-assert 'This chat saves only into that project: if something belongs to another project, tell your person instead' in d['reason']"
-  stop_case "a project picked during the chat (id only)" "$PID" '' no false ask "
-assert 'projectId $PID: one note per thing' in d['reason'], d['reason']
-assert 'decision = a choice a person made' in d['reason'] and 'your own build steps go here' in d['reason'], d['reason']"
-  stop_case "two projects matched (older SeamTrail)" ask '' no false ask "
-assert 'more than one SeamTrail project' in d['reason'], d['reason']"
-  stop_case "saved this turn" "$PID" Pay yes false quiet
-  stop_case "asked once already (stop_hook_active)" "$PID" Pay no true quiet
-  stop_case "no project" - '' no false quiet
+  stop_case "a picked project with its name" "$PID" "Pay" no remind "projectId $PID (the project “Pay”)"
+  stop_case "a name SeamTrail escaped (its codes never show)" "$PID" "Caf${BS}u00e9 ${BS}\"Pay${BS}\"" no remind "projectId $PID: one note per thing"
+  stop_case "a project picked during the chat (id only)" "$PID" '' no remind "your own build steps go here"
+  stop_case "two projects matched (older SeamTrail)" ask '' no remind "more than one SeamTrail project"
+  stop_case "saved this turn" "$PID" Pay yes quiet
+  stop_case "no project" - '' no quiet
 done
 
 # ════ 3. A Codex chat, every hook run from hooks.json the way Codex runs it ════
@@ -393,11 +392,20 @@ assert d['hookSpecificOutput']['updatedInput'] == {'kind': 'decision', 'text': '
   out=$(fire "$L" UserPromptSubmit "" "$(prompt_in 'thanks, what next?')")
   check "e2e: nothing new → nothing added to the message" "$out" ""
   out=$(fire "$L" Stop "" "$(stop_in false 'Next is WEB-7.')")
-  pyck "e2e: turn end with nothing saved → one reminder naming the chat's project" "$out" "
-assert d['decision'] == 'block' and 'projectId $PID (the project “Pay”)' in d['reason'], d"
+  check "e2e: turn end with nothing saved → never stops Codex" "$out" ""
+  FAKE_BODY='WEB-7 moved.'
+  out=$(fire "$L" UserPromptSubmit "" "$(prompt_in 'go on with PAY-4')")
+  case "$out" in
+    'WEB-7 moved.'*"SeamTrail: nothing was saved in your last turn."*"projectId $PID (the project “Pay”)"*) ok "e2e: the next message brings the news and one reminder naming the chat's project" ;;
+    *) bad "e2e: the next message [$out]" ;;
+  esac
+  FAKE_BODY=
+  fire "$L" Stop "" "$(stop_in false 'Sure.')" >/dev/null
   fire "$L" PostToolUse mcp__seamtrail__remember "$(post_in mcp__seamtrail__remember '{}' '{"content":[{"type":"text","text":"ok"}]}')" >/dev/null
-  out=$(fire "$L" Stop "" "$(stop_in true 'Saved.')")
-  if [ -z "$out" ] && [ ! -f "$E2E/saved-$S" ]; then ok "e2e: after the reminder (stop_hook_active) → quiet"; else bad "e2e: second stop [$out]"; fi
+  out=$(fire "$L" Stop "" "$(stop_in false 'Saved.')")
+  if [ -z "$out" ] && [ ! -f "$E2E/saved-$S" ] && [ ! -f "$E2E/remind-$S" ]; then ok "e2e: a save → quiet, and no reminder waits"; else bad "e2e: stop after a save [$out]"; fi
+  out=$(fire "$L" UserPromptSubmit "" "$(prompt_in 'and then?')")
+  check "e2e: the message after a save brings no reminder" "$out" ""
   out=$(fire "$L" PreToolUse mcp__seamtrail__ask_seamtrail "$(pre_in mcp__seamtrail__ask_seamtrail '{"question":"move WEB-7"}')")
   pyck "e2e: the agent's own reply's tickets go along too (last 3 replies)" "$out" "
 assert d['hookSpecificOutput']['updatedInput']['chatTickets'] == 'PAY-4,WEB-7', d"

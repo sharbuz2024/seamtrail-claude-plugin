@@ -4,7 +4,7 @@
 # calls is believed. SeamTrail answers with plain text, which goes to Gemini as context: the context of the project the
 # person picked for this chat, or, not picked yet, the question Gemini asks at the first message ("Which SeamTrail
 # project is this chat for?" — the git remote and branch only order its options). It also keeps, on this computer, the
-# chat's project, so the turn-end check (stop.sh) names it — or stays quiet.
+# chat's project, so the save reminder (remind.sh) names it — or stays quiet.
 # Two Gemini CLI gaps it covers: after /clear, Gemini CLI does not give a SessionStart hook's context to the new chat;
 # and compressing a long chat (PreCompress, which runs this script too) folds the start context into a summary. Then
 # the answer is kept here and handed over with the person's next message (message.sh), as at a chat start.
@@ -16,7 +16,7 @@ event=$(field hook_event_name)
 from=$(field source)
 # A new, resumed or cleared chat starts clean: nothing saved yet, no project known yet, not asked yet.
 if [ "$event" != PreCompress ] && [ -n "$session" ]; then
-  rm -f "$data/saved-$session" "$data/project-$session" "$data/asked-$session" "$data/start-$session"
+  rm -f "$data/saved-$session" "$data/project-$session" "$data/remind-$session" "$data/start-$session"
 fi
 # Gemini CLI never empties this folder (not even when the extension is removed): what is a month old goes. A chat
 # that comes back later gets its project from SeamTrail again, right here.

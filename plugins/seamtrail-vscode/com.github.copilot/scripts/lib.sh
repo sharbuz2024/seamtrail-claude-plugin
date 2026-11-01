@@ -35,20 +35,6 @@ camel() {
   printf '%s' "$input" | grep -q '"sessionId"' && ! printf '%s' "$input" | grep -q '"session_id"'
 }
 
-# One of these SeamTrail tools: the name holds SeamTrail's server name and ends with the tool's own name.
-is_tool() {
-  case "$tool" in *seamtrail*) ;; *) return 1 ;; esac
-  for _n in "$@"; do
-    case "$tool" in "$_n" | *[!a-z0-9]"$_n") return 0 ;; esac
-  done
-  return 1
-}
-
-# The tool call failed or was refused (Copilot sends failures to another event; Local may not).
-failed() {
-  printf '%s' "$input" | grep -Eq '"(isError|is_error)"[[:space:]]*:[[:space:]]*true|"(resultType|result_type)"[[:space:]]*:[[:space:]]*"(failure|error|rejected|denied)"'
-}
-
 # Text on stdin as one JSON string, quotes included, without jq, node or python. Control characters other than tab
 # and newline (a CR of CRLF too) are dropped; every other byte, UTF-8 included, is kept as it is (byte-wise, C locale).
 json_string() {

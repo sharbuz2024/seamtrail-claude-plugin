@@ -43,5 +43,8 @@ case "$code" in
       --data-urlencode "chat=$session" \
       --data-urlencode "tickets=$tickets" 2>/dev/null) ;;
 esac
+# SEAM-215: the save reminder, when the last turn saved nothing, goes with this message (remind.sh).
+note=$(sh "$(dirname "$0")/remind.sh" "$data" "$session")
+if [ -n "$answer" ] && [ -n "$note" ]; then answer=$(printf '%s\n\n%s' "$answer" "$note"); else answer="$answer$note"; fi
 printf '%s' "$answer" | context UserPromptSubmit
 exit 0

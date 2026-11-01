@@ -1,6 +1,6 @@
 #!/bin/sh
 # SeamTrail · the person picked this chat's project, in Codex (SEAM-252; the Claude Code plugin's picked.sh, SEAM-228):
-# set_chat_project was called on a SeamTrail server, so the turn-end check (stop.sh) names that project from now on —
+# set_chat_project was called on a SeamTrail server, so the save reminder (remind.sh) names that project from now on —
 # or, for "No project", stays quiet. Nothing leaves the computer.
 
 input=$(cat)

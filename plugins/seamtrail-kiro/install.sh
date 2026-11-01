@@ -59,7 +59,7 @@ get() { # <path in the plugin folder> → $tmp/<path>
     *) cp "$src/$1" "$tmp/$1" ;;
   esac
 }
-scripts="start message saved picked stop hint"
+scripts="start message saved picked stop remind hint"
 # SEAM-233: what message.sh cleans a message with before its words leave (no code, secrets or credentials).
 cleaner="hint.js hint.py hint-rules.json"
 for f in $scripts; do

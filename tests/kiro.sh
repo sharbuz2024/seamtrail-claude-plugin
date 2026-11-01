@@ -7,7 +7,7 @@
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 P="$ROOT/plugins/seamtrail-kiro"
 K="$P/kiro/seamtrail"
-TEMPLATE="$ROOT/plugins/seamtrail/scripts/stop.sh"
+TEMPLATE="$ROOT/plugins/seamtrail/scripts/remind.sh"
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 export HOME="$T/home" XDG_STATE_HOME="$T/state"
@@ -105,7 +105,7 @@ fi
 has "steering: always included" "$(sed -n '1,3p' "$P/kiro/steering/seamtrail.md")" "inclusion: always"
 has "steering: the agent adds chatId itself" "$(cat "$P/kiro/steering/seamtrail.md")" "chatId: that chat id, exactly as given"
 bad=""
-for f in "$K/start.sh" "$K/message.sh" "$K/saved.sh" "$K/picked.sh" "$K/stop.sh" "$P/install.sh"; do sh -n "$f" || bad="$bad $f"; done
+for f in "$K/start.sh" "$K/message.sh" "$K/saved.sh" "$K/picked.sh" "$K/stop.sh" "$K/remind.sh" "$P/install.sh"; do sh -n "$f" || bad="$bad $f"; done
 is "every script parses with sh" "$bad" ""
 
 echo "· matchers (Kiro's tool ids: mcp_<server>_<tool>; older CLIs @<server>/<tool>)"
@@ -127,7 +127,7 @@ done
 
 echo "· start.sh (SessionStart)"
 START='{"hook_event_name":"SessionStart","cwd":"'"$REPO"'","session_id":"'"$S"'"}'
-mkdir -p "$DATA" && : > "$DATA/saved-$S" && : > "$DATA/asked-$S"
+mkdir -p "$DATA" && : > "$DATA/saved-$S" && : > "$DATA/remind-$S"
 out=$(printf '%s' "$START" | SEAMTRAIL_TOKEN=tok-1 run start.sh)
 has "start: SeamTrail's text goes to the agent" "$out" "SeamTrail project context for this chat."
 has "start: the agent is told the chat id" "$out" "This chat's SeamTrail chat id is $S: add chatId \"$S\" to every SeamTrail tool call"
@@ -144,7 +144,7 @@ has "start: the token" "$log" "-H Authorization: Bearer tok-1"
 is "start: the chat's project kept" "$(cat "$DATA/project-$S" 2>/dev/null)" "$PID
 My Project"
 file_is "start: the chat starts clean (saved)" "$DATA/saved-$S" no
-file_is "start: the chat starts clean (asked)" "$DATA/asked-$S" no
+file_is "start: the chat starts clean (no reminder waiting)" "$DATA/remind-$S" no
 file_is "start: marks the chat started" "$DATA/started-$S" yes
 : > "$LOG"; rm -f "$DATA/started-$S" "$DATA/project-$S"
 out=$(printf '%s' "$START" | SEAMTRAIL_TOKEN= run start.sh)
@@ -160,7 +160,6 @@ is "start, an id that is not plain: nothing at all" "$out|$(calls)" "|0"
 
 echo "· message.sh (UserPromptSubmit)"
 rm -f "$DATA/started-$S"; printf '%s' "$START" | SEAMTRAIL_TOKEN=tok-1 run start.sh >/dev/null; : > "$LOG"
-: > "$DATA/asked-$S"
 MSG='{"hook_event_name":"UserPromptSubmit","session_id":"'"$S"'","prompt":"Fix PAY-4 and ABC-12 (not pay-5) \"quoted\"\nthen DEF-1 with password=hunter2zz","cwd":"/work/ZZZ-9-folder"}'
 out=$(printf '%s' "$MSG" | SEAMTRAIL_TOKEN=tok-1 run message.sh)
 is "message: SeamTrail's text goes to the agent" "$out" "SeamTrail news: PAY-4 moved to Done."
@@ -173,14 +172,8 @@ has "message: … the ticket keys" "$log" "\"tickets\":\"ABC-12,DEF-1,PAY-4\""
 has "message: … and its words" "$log" "Fix PAY-4 and ABC-12"
 hasnt "message: never a secret or credential" "$log" "hunter2zz"
 is "message: one call (the chat was registered at start)" "$(calls)" 1
-file_is "message: a message from the person starts a new turn" "$DATA/asked-$S" no
-: > "$LOG"; : > "$DATA/asked-$S"
-REMIND='{"hook_event_name":"UserPromptSubmit","session_id":"'"$S"'","prompt":"SeamTrail: nothing was saved this turn. If in this turn your person decided something"}'
-out=$(printf '%s' "$REMIND" | SEAMTRAIL_TOKEN=tok-1 run message.sh)
-is "message: the turn-end reminder coming back is not the person's" "$out|$(calls)" "|0"
-file_is "message: … and the turn still counts as asked" "$DATA/asked-$S" yes
+: > "$LOG"
 out=$(printf '{"hook_event_name":"UserPromptSubmit","session_id":"%s","prompt":""}' "$S" | SEAMTRAIL_TOKEN=tok-1 run message.sh)
-file_is "message: an empty prompt is not a new turn" "$DATA/asked-$S" yes
 has "message: an empty prompt still gets the news" "$(cat "$LOG")" "--data-urlencode tickets="
 : > "$LOG"
 out=$(printf '{"hook_event_name":"UserPromptSubmit","session_id":"%s"}' "$S" | USER_PROMPT="look at PAY-7" SEAMTRAIL_TOKEN=tok-1 run message.sh)
@@ -271,37 +264,38 @@ is "picked: no answer in the input — the call's projectId, as in Claude Code" 
 pick "{\"projectId\":\"$PID\"}" "" mcp_github_set_chat_project
 is "picked: another server's tool changes nothing" "$(proj)" "$PID2"
 
-echo "· stop.sh (Stop) — the template's words"
+echo "· stop.sh (Stop) never stops the agent; remind.sh has the template's words"
 stop_in='{"hook_event_name":"Stop","cwd":"'"$REPO"'","session_id":"'"$S"'","assistant_response":"Done with PAY-4."}'
 CC="$T/cc"; mkdir -p "$CC"
-template() { printf '{"session_id":"%s","stop_hook_active":false}' "$S" | CLAUDE_PLUGIN_DATA="$CC" sh "$TEMPLATE"; }
-rm -f "$DATA/saved-$S" "$DATA/asked-$S"
+template() { : > "$CC/remind-$S"; printf '{"session_id":"%s"}' "$S" | CLAUDE_PLUGIN_DATA="$CC" sh "$TEMPLATE"; }
+note() { sh "$K/remind.sh" "$DATA" "$S"; }
+rm -f "$DATA/saved-$S" "$DATA/remind-$S"
 printf '%s\nMy Project\n' "$PID" > "$DATA/project-$S"; cp "$DATA/project-$S" "$CC/project-$S"
 out=$(printf '%s' "$stop_in" | run stop.sh)
-is "stop: asks once, word for word as the Claude Code plugin" "$out" "$(template)"
-has "stop: names the chat's project" "$out" "projectId $PID (the project “My Project”)"
-json_ok_text() { printf '%s' "$1" > "$T/out.json"; json_ok "$T/out.json"; }
-json_ok_text "$out" && ok "stop: the answer is JSON Kiro reads ({\"decision\":\"block\",\"reason\":…})" || no "stop: not JSON"
-out=$(printf '%s' "$stop_in" | run stop.sh)
-is "stop: never asks twice (the turn end after the agent's answer)" "$out" ""
-file_is "stop: … and the next turn starts over" "$DATA/asked-$S" no
-: > "$DATA/saved-$S"; : > "$DATA/asked-$S"
+is "stop: nothing saved → never stops the agent" "$out" ""
+file_is "stop: … notes it on this computer" "$DATA/remind-$S" yes
+n=$(note)
+is "remind: word for word as the Claude Code plugin" "$n" "$(template)"
+has "remind: names the chat's project" "$n" "projectId $PID (the project “My Project”)"
+is "remind: once only" "$(note)" ""
+: > "$DATA/saved-$S"; : > "$DATA/remind-$S"
 out=$(printf '%s' "$stop_in" | run stop.sh)
 is "stop: saved this turn → quiet" "$out" ""
 file_is "stop: saved mark cleared" "$DATA/saved-$S" no
-file_is "stop: asked mark cleared" "$DATA/asked-$S" no
-out=$(printf '{"session_id":"%s","stop_hook_active":true}' "$S" | run stop.sh)
-is "stop: stop_hook_active, should Kiro send it → quiet" "$out" ""
+file_is "stop: no reminder waits" "$DATA/remind-$S" no
 printf 'ask\n\n' > "$DATA/project-$S"; cp "$DATA/project-$S" "$CC/project-$S"
-out=$(printf '%s' "$stop_in" | run stop.sh)
-is "stop: two projects matched (older SeamTrail), as the template" "$out" "$(template)"
-rm -f "$DATA/asked-$S"
+printf '%s' "$stop_in" | run stop.sh > /dev/null
+is "remind: two projects matched (older SeamTrail), as the template" "$(note)" "$(template)"
 printf '%s\n\n' "$PID2" > "$DATA/project-$S"; cp "$DATA/project-$S" "$CC/project-$S"
+printf '%s' "$stop_in" | run stop.sh > /dev/null
+is "remind: a project picked in the chat (id only), as the template" "$(note)" "$(template)"
+printf '%s\nPay \\"UPI\\" \\u00b7\n' "$PID2" > "$DATA/project-$S"
+printf '%s' "$stop_in" | run stop.sh > /dev/null
+has "remind: an escaped name never shows its codes: the id alone" "$(note)" "with projectId $PID2: one note"
+rm -f "$DATA/project-$S"
 out=$(printf '%s' "$stop_in" | run stop.sh)
-is "stop: a project picked in the chat (id only), as the template" "$out" "$(template)"
-rm -f "$DATA/asked-$S" "$DATA/project-$S"
-out=$(printf '%s' "$stop_in" | run stop.sh)
-is "stop: no project → never asks" "$out" ""
+is "stop: no project → never reminds" "$out" ""
+file_is "stop: … no reminder waits" "$DATA/remind-$S" no
 
 echo "· a whole chat"
 S3=sess_whole-3
@@ -310,17 +304,15 @@ in3() { printf '{"hook_event_name":"%s","cwd":"%s","session_id":"%s"%s}' "$1" "$
 in3 SessionStart "" | SEAMTRAIL_TOKEN=tok-1 run start.sh >/dev/null
 in3 UserPromptSubmit ',"prompt":"Let us pick the cache for PAY-4"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
 r1=$(in3 Stop "" | run stop.sh)
-has "turn 1: nothing saved → the reminder" "$r1" '"decision":"block"'
-in3 UserPromptSubmit ',"prompt":"SeamTrail: nothing was saved this turn. If in this turn …"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
-r2=$(in3 Stop "" | run stop.sh)
-is "turn 1: the agent answered the reminder → quiet (no loop)" "$r2" ""
-in3 UserPromptSubmit ',"prompt":"We chose Redis because of TTLs, token=abcd1234zz"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
+is "turn 1: nothing saved → the agent is not stopped" "$r1" ""
+r2=$(in3 UserPromptSubmit ',"prompt":"We chose Redis because of TTLs, token=abcd1234zz"' | SEAMTRAIL_TOKEN=tok-1 run message.sh)
+has "turn 2's message: the news" "$r2" "SeamTrail news: PAY-4 moved to Done."
+has "turn 2's message: … and the reminder" "$r2" "SeamTrail: nothing was saved in your last turn."
 in3 PostToolUse ',"tool_name":"mcp_seamtrail_remember","tool_input":{},"tool_response":"{}"' | run saved.sh
 r3=$(in3 Stop "" | run stop.sh)
 is "turn 2: the agent saved → quiet" "$r3" ""
-in3 UserPromptSubmit ',"prompt":"ok next"' | SEAMTRAIL_TOKEN=tok-1 run message.sh >/dev/null
-r4=$(in3 Stop "" | run stop.sh)
-has "turn 3: nothing saved → the reminder again" "$r4" '"decision":"block"'
+r4=$(in3 UserPromptSubmit ',"prompt":"ok next"' | SEAMTRAIL_TOKEN=tok-1 run message.sh)
+hasnt "turn 3's message: no reminder after a save" "$r4" "nothing was saved"
 # SEAM-233 (founder 2026-10-24): a message's words go, cleaned on the computer — never a secret or credential.
 has "a message's words went, cleaned" "$(cat "$LOG")" "We chose Redis because of TTLs"
 hasnt "no secret or credential ever left the computer" "$(cat "$LOG")" "abcd1234zz"
@@ -383,7 +375,7 @@ has "installed hook command runs: $cmd" "$out" "SeamTrail chat id is sess_inst-6
 cmd=$(grep '"command"' "$HOME/.kiro/hooks/seamtrail.json" | sed -n 6p | sed 's/.*"command": "\([^"]*\)".*/\1/')
 out=$(printf '{"hook_event_name":"Stop","session_id":"sess_inst-6"}' | (cd "$T" && sh -c "$cmd"); echo "exit $?")
 has "--user turn-end hook runs from any folder: $cmd" "$out" "exit 0"
-has "--user turn-end hook: asks into the chat's project" "$out" '"decision":"block"'
+is "--user turn-end hook: never stops the agent" "$out" "exit 0"
 
 [ $fail = 0 ] && echo "ALL PASSED" || echo "SOME FAILED"
 exit $fail

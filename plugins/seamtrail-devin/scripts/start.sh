@@ -5,8 +5,7 @@
 # it only as JSON: hookSpecificOutput.additionalContext): the context of the project the person picked for this chat,
 # or, not picked yet, the question Devin asks at the first message ("Which SeamTrail project is this chat for?" —
 # assistant=devin has SeamTrail word it for Devin and label the chat's notes "a Devin chat"; the git remote and branch
-# only order its options). It also keeps, on this computer, the chat's project, so the turn-end check (stop.sh) names
-# it — or stays quiet. Silent on any failure — a hook must never get in the way.
+# only order its options). It also keeps, on this computer, the chat's project, so the save reminder (remind.sh) names it — or stays quiet. Silent on any failure — a hook must never get in the way.
 
 . "$(dirname "$0")/lib.sh"
 # Devin has no plugin setting a hook can read, so the token and address come from the environment.

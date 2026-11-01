@@ -1,5 +1,5 @@
 {
-  "description": "SeamTrail: registers the chat and hands Codex its project's memory at chat start and at each message, adds the chat id to SeamTrail calls, and asks once at turn end to save what was decided. Only ids, ticket numbers, the folder and its git remote and branch leave the computer, never the conversation.",
+  "description": "SeamTrail: registers the chat and hands Codex its project's memory at chat start and at each message, adds the chat id to SeamTrail calls, and, when a turn saved nothing, reminds Codex once with the next message to save what was decided. Only ids, ticket numbers, the folder and its git remote and branch leave the computer, never the conversation.",
   "hooks": {
     "SessionStart": [
       {

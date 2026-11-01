@@ -5,10 +5,6 @@
 # any text. The guard (guard.sh) sends them with the chat's SeamTrail calls, beside the agent's own "working on", so
 # SeamTrail can bring the chat the news about its work. Silent on any failure; it never answers Cursor (an empty
 # answer lets the message go on as it is).
-#
-# For a reply it also keeps whether the agent ended it with a question for the person (yes or no, with the turn's id —
-# never the reply): Cursor sends the turn-end reminder as the person's next message, so stop.sh waits while the agent
-# waits for the person's answer.
 
 role="$1"
 [ "$role" = person ] || [ "$role" = agent ] || exit 0
@@ -25,27 +21,7 @@ find "$st_state" -name 'tickets-*.jsonl' -mtime +1 -exec rm -f {} + 2>/dev/null
 file="$st_state/tickets-$chat.jsonl"
 field=prompt
 
-if [ "$role" = agent ]; then
-  field=text
-  # The reply's last character, after spaces, line breaks and markdown marks — read from the JSON text in one pass
-  # (escaped backslashes and quotes set aside first, so the first quote left ends the reply).
-  last=$(printf '%s' "$input" | awk 'match($0, /"text"[ \t]*:[ \t]*"/) {
-    s = substr($0, RSTART + RLENGTH)
-    gsub(/\\\\/, "x", s); gsub(/\\"/, "x", s)
-    p = index(s, "\""); if (p) s = substr(s, 1, p - 1)
-    gsub(/\\[nrt]/, " ", s)
-    while (s != "" && index(" *_`", substr(s, length(s), 1))) s = substr(s, 1, length(s) - 1)
-    print substr(s, length(s), 1); exit
-  }')
-  if [ "$last" = "?" ]; then
-    st_field "$input" generation_id > "$st_state/asked-$chat"
-  else
-    rm -f "$st_state/asked-$chat"
-  fi
-else
-  # The turn-end reminder comes back as the person's next message (Cursor sends it for them): not their words.
-  printf '%s' "$input" | grep -q '"prompt"[[:space:]]*:[[:space:]]*"SeamTrail: nothing was saved this turn\.' && exit 0
-fi
+[ "$role" = agent ] && field=text
 
 # jq: on macOS 15 and later, and on most Linux machines.
 if command -v jq >/dev/null 2>&1; then

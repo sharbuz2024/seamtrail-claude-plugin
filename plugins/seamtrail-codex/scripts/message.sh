@@ -13,6 +13,7 @@ input=$(cat)
 printf '%s' "$input" | grep -q '"agent_id"[[:space:]]*:[[:space:]]*"[^"]' && exit 0
 session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 [ -n "$session" ] || exit 0
+data="${PLUGIN_DATA:-${XDG_STATE_HOME:-$HOME/.local/state}/seamtrail/codex}"
 
 # The ticket numbers in the message ("PAY-4"), at most five; no JSON tool needed. The prompt's JSON string ends at its
 # first unescaped quote (Codex may put other fields after it).
@@ -43,5 +44,7 @@ case "$code" in
       --data-urlencode "chat=$session" \
       --data-urlencode "tickets=$tickets" 2>/dev/null) ;;
 esac
-printf '%s' "$answer"
+# SEAM-215: the save reminder, when the last turn saved nothing, goes with this message (remind.sh).
+note=$(sh "$(dirname "$0")/remind.sh" "$data" "$session")
+if [ -n "$answer" ] && [ -n "$note" ]; then printf '%s\n\n%s' "$answer" "$note"; else printf '%s%s' "$answer" "$note"; fi
 exit 0

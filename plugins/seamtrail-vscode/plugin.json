@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "seamtrail",
   "version": "0.1.0",
-  "description": "SeamTrail, your team's shared memory, in VS Code's GitHub Copilot agent: each chat asks once which SeamTrail project it is for, then gets that project's context at chat start, tells SeamTrail which chat its calls come from and the ticket numbers in your last messages — never the conversation — saves only into that project, and is reminded at turn end to save what was decided.",
+  "description": "SeamTrail, your team's shared memory, in VS Code's GitHub Copilot agent: each chat asks once which SeamTrail project it is for, then gets that project's context at chat start, tells SeamTrail which chat its calls come from and the ticket numbers in your last messages — never the conversation — and saves only into that project.",
   "author": {
     "name": "SeamTrail"
   },

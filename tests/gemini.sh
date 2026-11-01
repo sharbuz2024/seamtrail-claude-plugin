@@ -112,7 +112,7 @@ fresh
 # The server's text, with what JSON must escape: quotes, a backslash, a tab, a Windows line end, a control character.
 printf 'Project “Pay Core” — say "hi" to C:\\temp\there\r\n<b>%%s</b> 100%%\001\nlast line' > "$FAKE/body"
 printf 'HTTP/1.1 200 OK\r\nx-seamtrail-project: %s\r\nX-SeamTrail-Project-Name: Pay "Core"\r\n\r\n' "$PROJ" > "$FAKE/headers"
-mkdir -p "$DATA" && : > "$DATA/saved-$S" && : > "$DATA/asked-$S"
+mkdir -p "$DATA" && : > "$DATA/saved-$S" && : > "$DATA/remind-$S"
 out=$(session_start startup | SEAMTRAIL_TOKEN=tok-1 run start.sh)
 check_json "chat start: SeamTrail's text goes to Gemini as context, escaped right" "$out" \
   'd == {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": a[0]}}' \
@@ -125,7 +125,7 @@ if called "https://mcp.seamtrail.com/mcp/hook/start" && called "assistant=gemini
 else bad "chat start call: $(tr '\n' ' ' < "$FAKE/curl.log")"; fi
 if grep -Eq 'chatName|transcript|session\.json' "$FAKE/curl.log"; then bad "chat start sent more than it should"; else ok "chat start: sends nothing else (no transcript, no chat text)"; fi
 if [ "$(cat "$DATA/project-$S")" = "$(printf '%s\nPay "Core"' "$PROJ")" ]; then ok "chat start: keeps the chat's project and name"; else bad "project file: $(cat "$DATA/project-$S")"; fi
-if [ ! -f "$DATA/saved-$S" ] && [ ! -f "$DATA/asked-$S" ]; then ok "chat start: the chat starts clean (not saved, not asked)"; else bad "markers left at chat start"; fi
+if [ ! -f "$DATA/saved-$S" ] && [ ! -f "$DATA/remind-$S" ]; then ok "chat start: the chat starts clean (not saved, no reminder waiting)"; else bad "markers left at chat start"; fi
 
 fresh; printf 'Resumed context' > "$FAKE/body"
 out=$(session_start resume | SEAMTRAIL_TOKEN=tok-1 run start.sh)
@@ -169,7 +169,7 @@ out=$(session_start startup | SEAMTRAIL_TOKEN=tok-1 SEAMTRAIL_URL=https://st.exa
 if called "https://st.example.com/mcp/hook/start"; then ok "SEAMTRAIL_URL: a company's own SeamTrail"; else bad "SEAMTRAIL_URL"; fi
 
 echo "· message.sh (BeforeAgent)"
-fresh; printf 'PAY-4: decided by Priya' > "$FAKE/body"; : > "$DATA/saved-$S"; : > "$DATA/asked-$S"
+fresh; printf 'PAY-4: decided by Priya' > "$FAKE/body"; : > "$DATA/saved-$S"
 out=$(before_agent 'Look at PAY-4 and ABC-12\nthen pay-5, X-1, utf-8 and PAY-4 again' | SEAMTRAIL_TOKEN=tok-1 run message.sh)
 check_json "message: SeamTrail's answer goes to Gemini with the message" "$out" \
   'd == {"hookSpecificOutput": {"hookEventName": "BeforeAgent", "additionalContext": "PAY-4: decided by Priya"}}'
@@ -177,16 +177,16 @@ if called "https://mcp.seamtrail.com/mcp/hook/message" && called "chat=$S" && ca
   ok "message: sends the chat id and the ticket numbers only"
 else bad "message call: $(tr '\n' ' ' < "$FAKE/curl.log")"; fi
 if grep -q 'Look at' "$FAKE/curl.log"; then bad "message: words sent"; else ok "message: never the words"; fi
-if [ ! -f "$DATA/saved-$S" ] && [ ! -f "$DATA/asked-$S" ]; then ok "message: a new turn (not saved, not asked)"; else bad "message: markers left"; fi
+if [ ! -f "$DATA/saved-$S" ]; then ok "message: a new turn (not saved)"; else bad "message: saved marker left"; fi
 fresh; printf 'x' > "$FAKE/body"
 before_agent 'AA-11 BB-22 CC-33 DD-44 EE-55 FF-66' | SEAMTRAIL_TOKEN=tok-1 run message.sh > /dev/null
 if called "tickets=AA-11,BB-22,CC-33,DD-44,EE-55"; then ok "message: at most five ticket numbers"; else bad "five tickets: $(grep tickets= "$FAKE/curl.log")"; fi
 fresh; : > "$FAKE/body"
 out=$(before_agent 'nothing new' | SEAMTRAIL_TOKEN=tok-1 run message.sh)
 quiet "message: nothing to tell, nothing added" "$out"
-fresh; : > "$DATA/asked-$S"
+fresh; : > "$DATA/saved-$S"
 out=$(before_agent 'hello PAY-4' | run message.sh)
-if [ -z "$out" ] && [ ! -f "$FAKE/curl.log" ] && [ ! -f "$DATA/asked-$S" ]; then ok "message, no token: silent, no call, still a new turn"; else bad "message without token"; fi
+if [ -z "$out" ] && [ ! -f "$FAKE/curl.log" ] && [ ! -f "$DATA/saved-$S" ]; then ok "message, no token: silent, no call, still a new turn"; else bad "message without token"; fi
 
 echo "· tickets.sh (BeforeAgent person, AfterAgent agent)"
 rm -f "$DATA"/tickets-*
@@ -197,8 +197,6 @@ TICKETS_JQ=$(cat "$DATA/tickets-$S.jsonl")
 check_json "tickets: the last 3 messages each way, numbers only, the same reply once" \
   "[$(printf '%s' "$TICKETS_JQ" | paste -sd, -)]" \
   '[(x["r"], x["k"]) for x in d] == [("person", ["PAY-2"]), ("person", ["PAY-3"]), ("person", ["ABC-12", "PAY-4"]), ("agent", ["OPS-9"])] and all(set(x) == {"r", "n", "k"} for x in d)'
-before_agent 'SeamTrail: nothing was saved this turn. If in this turn PAY-77 …' | run tickets.sh person
-if [ "$(cat "$DATA/tickets-$S.jsonl")" = "$TICKETS_JQ" ]; then ok "tickets: the turn-end reminder is not the person's message"; else bad "reminder recorded"; fi
 # The same without jq (node), and without jq and node (python3).
 mkdir -p "$W/nojq" "$W/py" "$W/none"
 for t in cat grep head tail sed tr find mkdir rm mv cp dirname uname sort paste xcode-select; do
@@ -261,36 +259,30 @@ if [ "$(cat "$DATA/project-$S" 2>/dev/null)" = "$PROJ" ]; then ok "picked: the c
 after_tool mcp_seamtrail_set_chat_project '{"projectId":"11111111-2222-3333-4444-555555555555"}' '{"llmContent":"x","returnDisplay":"Error","error":{"message":"not on that project","type":"mcp_tool_error"}}' | run picked.sh
 if [ "$(cat "$DATA/project-$S")" = "$PROJ" ]; then ok "picked: refused → unchanged"; else bad "picked after a refusal"; fi
 after_tool mcp_seamtrail_set_chat_project '{"none":true}' "$(wrap 'No project for this chat.')" | run picked.sh
-if [ ! -f "$DATA/project-$S" ]; then ok "picked: \"No project\" → the turn-end check stays quiet"; else bad "picked none"; fi
+if [ ! -f "$DATA/project-$S" ]; then ok "picked: \"No project\" → no reminder"; else bad "picked none"; fi
 
-echo "· stop.sh (AfterAgent): the Claude Code plugin's words"
-reason_of() { python3 -c 'import json,sys; print(json.load(sys.stdin)["reason"])'; }
+echo "· stop.sh (AfterAgent) never stops the agent; remind.sh has the Claude Code plugin's words"
 CLAUDE_DATA="$W/claude"; mkdir -p "$CLAUDE_DATA"
+template() { : > "$CLAUDE_DATA/remind-$S"; printf '{"session_id":"%s"}' "$S" | CLAUDE_PLUGIN_DATA="$CLAUDE_DATA" sh "$TEMPLATE/scripts/remind.sh"; }
 printf '%s\nMy Project\n' "$PROJ" > "$DATA/project-$S"; printf '%s\nMy Project\n' "$PROJ" > "$CLAUDE_DATA/project-$S"
 out=$(after_agent 'Ship it' 'Shipped.' false | run stop.sh)
-template=$(printf '{"session_id":"%s","stop_hook_active":false}' "$S" | CLAUDE_PLUGIN_DATA="$CLAUDE_DATA" sh "$TEMPLATE/scripts/stop.sh")
-check_json "stop: asks once (block → Gemini CLI retries with the reason), names the project" "$out" \
-  'd["decision"] == "block" and "projectId " + a[0] + " (the project “My Project”)" in d["reason"]' "$PROJ"
-if [ -n "$template" ] && [ "$(printf '%s' "$out" | reason_of)" = "$(printf '%s' "$template" | reason_of)" ]; then ok "stop: the same words as the Claude Code plugin"; else bad "stop wording differs from the template"; fi
-out=$(after_agent 'SeamTrail: nothing was saved this turn.' 'Searched; nothing to save.' false | run stop.sh)
-quiet "stop: never twice in a turn, even when Gemini CLI no longer says stop_hook_active" "$out"
-rm -f "$DATA/asked-$S"
-out=$(after_agent 'Ship it' 'Shipped.' true | run stop.sh)
-quiet "stop: stop_hook_active → never asks twice" "$out"
-: > "$DATA/saved-$S"
+quiet "stop: nothing saved → never stops Gemini CLI" "$out"
+note=$(run remind.sh "$DATA" "$S")
+if [ -n "$note" ] && [ "$note" = "$(template)" ]; then ok "remind: the same words as the Claude Code plugin"; else bad "remind words: [$note]"; fi
+case "$note" in *"projectId $PROJ (the project “My Project”)"*) ok "remind: names the project" ;; *) bad "remind: no project in [$note]" ;; esac
+quiet "remind: once only" "$(run remind.sh "$DATA" "$S")"
+: > "$DATA/saved-$S"; : > "$DATA/remind-$S"
 out=$(after_agent 'Ship it' 'Shipped.' false | run stop.sh)
-if [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ]; then ok "stop: saved this turn → quiet, mark cleared"; else bad "stop after a save: $out"; fi
+if [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ] && [ ! -f "$DATA/remind-$S" ]; then ok "stop: saved this turn → quiet, marks cleared"; else bad "stop after a save: $out"; fi
 printf 'ask\n\n' > "$DATA/project-$S"; printf 'ask\n\n' > "$CLAUDE_DATA/project-$S"
+after_agent 'x' 'y' false | run stop.sh > /dev/null
+if [ "$(run remind.sh "$DATA" "$S")" = "$(template)" ]; then ok "remind: two projects matched (older SeamTrail) — the same words"; else bad "remind for two projects"; fi
+printf '%s\nPay \\"Core\\" \\u00b7\n' "$PROJ" > "$DATA/project-$S"
+after_agent 'x' 'y' false | run stop.sh > /dev/null
+case "$(run remind.sh "$DATA" "$S")" in *"with projectId $PROJ: one note"*) ok "remind: an escaped name never shows its codes: the id alone" ;; *) bad "remind, escaped name" ;; esac
+rm -f "$DATA/project-$S"
 out=$(after_agent 'x' 'y' false | run stop.sh)
-template=$(printf '{"session_id":"%s","stop_hook_active":false}' "$S" | CLAUDE_PLUGIN_DATA="$CLAUDE_DATA" sh "$TEMPLATE/scripts/stop.sh")
-if [ "$(printf '%s' "$out" | reason_of)" = "$(printf '%s' "$template" | reason_of)" ]; then ok "stop: two projects matched (older SeamTrail) — the same words"; else bad "stop ask wording"; fi
-rm -f "$DATA/asked-$S"
-printf '%s\nPay "Core" \\ v2\n' "$PROJ" > "$DATA/project-$S"
-out=$(after_agent 'x' 'y' false | run stop.sh)
-check_json "stop: a project name with quotes still makes valid JSON" "$out" '"(the project “Pay \"Core\" \\ v2”)" in d["reason"]'
-rm -f "$DATA/asked-$S" "$DATA/project-$S"
-out=$(after_agent 'x' 'y' false | run stop.sh)
-quiet "stop: no project → never asks" "$out"
+if [ -z "$out" ] && [ ! -f "$DATA/remind-$S" ]; then ok "stop: no project → never reminds"; else bad "stop without a project: $out"; fi
 
 echo "· a whole turn"
 fresh; printf 'Project context' > "$FAKE/body"
@@ -299,16 +291,17 @@ session_start startup | SEAMTRAIL_TOKEN=tok-1 run start.sh > /dev/null
 fresh
 before_agent 'We picked Stripe for PAY-4' | run tickets.sh person
 before_agent 'We picked Stripe for PAY-4' | SEAMTRAIL_TOKEN=tok-1 run message.sh > /dev/null
-ask=$(after_agent 'We picked Stripe for PAY-4' 'Noted.' false | run stop.sh)
-reason=$(printf '%s' "$ask" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["reason"])[1:-1])')
-fresh
-out=$(before_agent "$reason" | SEAMTRAIL_TOKEN=tok-1 run message.sh)
-if [ -z "$out" ] && [ ! -f "$FAKE/curl.log" ] && [ -f "$DATA/asked-$S" ]; then ok "turn: the reminder's retry is not a new message (no call, still asked)"; else bad "turn: reminder taken as a message"; fi
+out=$(after_agent 'We picked Stripe for PAY-4' 'Noted.' false | run stop.sh)
+quiet "turn: nothing saved → Gemini CLI is not stopped" "$out"
+fresh; printf 'PAY-4: news' > "$FAKE/body"
+out=$(before_agent 'Next question' | SEAMTRAIL_TOKEN=tok-1 run message.sh)
+check_json "turn: the next message brings the news and one reminder, as valid JSON" "$out" \
+  'd["hookSpecificOutput"]["additionalContext"].startswith("PAY-4: news\n\nSeamTrail: nothing was saved in your last turn.") and "(the project “Pay”)" in d["hookSpecificOutput"]["additionalContext"]'
 after_tool mcp_seamtrail_remember '{"content":"We picked Stripe","kind":"decision"}' "$(wrap '{\"memoryId\":\"m2\"}')" | run saved.sh
-out=$(after_agent "$reason" 'Saved.' false | run stop.sh)
-if [ -n "$ask" ] && [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ]; then ok "turn: asked once, saved, then quiet"; else bad "turn: $out"; fi
-before_agent 'Next question' | run message.sh > /dev/null
-if [ ! -f "$DATA/asked-$S" ]; then ok "turn: the next message may be asked again"; else bad "turn: asked mark kept"; fi
+out=$(after_agent 'Next question' 'Saved.' false | run stop.sh)
+if [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ] && [ ! -f "$DATA/remind-$S" ]; then ok "turn: saved → quiet, no reminder waits"; else bad "turn: $out"; fi
+fresh; : > "$FAKE/body"
+quiet "turn: after a save the next message brings no reminder" "$(before_agent 'One more' | SEAMTRAIL_TOKEN=tok-1 run message.sh)"
 
 echo "· hooks.json as Gemini CLI runs it (\${extensionPath} filled in, bash -c, a folder with a space)"
 EXT="$W/ext dir/seamtrail"; mkdir -p "$W/ext dir" && cp -R "$P" "$EXT"

@@ -264,33 +264,37 @@ is "picked: refused → unchanged" "$(sed -n '1p' "$DATA/project-$S" 2>/dev/null
 pick '{"noProject":true}' '{"success":true,"output":"No project for this chat.","error":null}'
 [ -f "$DATA/project-$S" ] && bad "picked: No project kept a project" || ok "picked: No project → no project"
 
-echo "— turn end (Stop), the same wording as the Claude Code plugin's stop.sh"
+echo "— turn end (Stop) never stops the agent; the reminder comes with the next message, in the Claude Code plugin's words"
 mkdir -p "$T/claude"
-same_as_template() { # label — runs both stop.sh with the same project file and compares
-  cp "$DATA/project-$S" "$T/claude/project-$S"
-  hook Stop "" "$(stop_in 7 "Nothing to add.")" > "$T/out"
-  printf '{"session_id":"%s","stop_hook_active":false}' "$S" | CLAUDE_PLUGIN_DATA="$T/claude" sh "$R/plugins/seamtrail/scripts/stop.sh" > "$T/template"
-  python3 - "$T/out" "$T/template" <<'EOF' && ok "$1" || bad "$1"
-import json, sys
-d, t = json.load(open(sys.argv[1])), json.load(open(sys.argv[2]))
-assert d["decision"] == "block" and d == t, (d, t)
-EOF
+same_as_template() { # label — a turn end with nothing saved, then both remind.sh with the same project file
+  cp "$DATA/project-$S" "$T/claude/project-$S"; : > "$T/claude/remind-$S"
+  is "stop, $1: the turn end prints nothing" "$(hook Stop "" "$(stop_in 7 "Nothing to add.")")" ""
+  sh "$P/scripts/remind.sh" "$DATA" "$S" > "$T/out"
+  printf '{"session_id":"%s"}' "$S" | CLAUDE_PLUGIN_DATA="$T/claude" sh "$R/plugins/seamtrail/scripts/remind.sh" > "$T/template"
+  if [ -s "$T/out" ] && cmp -s "$T/out" "$T/template"; then ok "remind, $1: word for word the Claude Code plugin's reminder"; else bad "remind, $1: [$(cat "$T/out")] vs [$(cat "$T/template")]"; fi
 }
 printf 'p-1\nMy Project\n' > "$DATA/project-$S"
-same_as_template "stop: asks once, names the project — word for word the Claude Code plugin's reminder"
-python3 -c 'import json,sys; r=json.load(open(sys.argv[1]))["reason"]; assert "projectId p-1 (the project “My Project”)" in r and "tell your person instead" in r, r' "$T/out" || bad "stop: wording"
+same_as_template "a named project"
+grep -q 'projectId p-1 (the project “My Project”)' "$T/out" && grep -q 'tell your person instead' "$T/out" && ok "remind: names the project" || bad "remind: the project's name: $(cat "$T/out")"
 printf 'ask\n\n' > "$DATA/project-$S"
-same_as_template "stop: two projects matched (an older SeamTrail) — same wording"
-printf 'p-2\nPay "UPI" \\ Team\n' > "$DATA/project-$S"
-hook Stop "" "$(stop_in 8 "Nothing.")" > "$T/out"
-python3 -c 'import json,sys; r=json.load(open(sys.argv[1]))["reason"]; assert "(the project “Pay \"UPI\" \\ Team”)" in r, r' "$T/out" \
-  && ok "stop: a project name with a quote and a backslash still makes valid JSON" || bad "stop: JSON with a quoted name: $(cat "$T/out")"
-: > "$DATA/saved-$S"
+same_as_template "two projects matched (an older SeamTrail)"
+printf 'p-2\nPay \\"UPI\\" \\u00b7\n' > "$DATA/project-$S"
+same_as_template "a name SeamTrail escaped"
+grep -q 'with projectId p-2: one note' "$T/out" && ok "remind: an escaped name never shows its codes: the id alone" || bad "remind, escaped name: $(cat "$T/out")"
+printf 'p-2\nPay "UPI" Team\n' > "$DATA/project-$S"
+hook Stop "" "$(stop_in 8 "Nothing.")" > /dev/null
+printf 'News: WEB-7 moved.\n' > "$T/body"
+hook UserPromptSubmit "" "$in_msg" > "$T/out"
+python3 -c 'import json,sys; c=json.load(open(sys.argv[1]))["hookSpecificOutput"]["additionalContext"]; assert c.startswith("News: WEB-7 moved.\n\nSeamTrail: nothing was saved in your last turn.") and "(the project “Pay \"UPI\" Team”)" in c, c' "$T/out" \
+  && ok "message: the next message brings the news and one reminder, as valid JSON" || bad "message with the reminder: $(cat "$T/out")"
+: > "$T/body"
+is "message: the message after that brings no reminder" "$(hook UserPromptSubmit "" "$in_msg")" ""
+: > "$DATA/saved-$S"; : > "$DATA/remind-$S"
 out=$(hook Stop "" "$(stop_in 9 "Saved it.")")
-if [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ]; then ok "stop: saved this turn → quiet, marker cleared"; else bad "stop after a save: '$out'"; fi
-is "stop: never asks twice" "$(hook Stop "" '{"hook_event_name":"Stop","session_id":"'$S'","stop_hook_active":true,"last_assistant_message":"ok"}')" ""
+if [ -z "$out" ] && [ ! -f "$DATA/saved-$S" ] && [ ! -f "$DATA/remind-$S" ]; then ok "stop: saved this turn → quiet, markers cleared"; else bad "stop after a save: '$out'"; fi
 rm -f "$DATA/project-$S"
-is "stop: no project → never asks" "$(hook Stop "" "$(stop_in 10 "Done.")")" ""
+out=$(hook Stop "" "$(stop_in 10 "Done.")")
+if [ -z "$out" ] && [ ! -f "$DATA/remind-$S" ]; then ok "stop: no project → never reminds"; else bad "stop without a project: '$out'"; fi
 grep -q -e 'Nothing to add' -e 'Saved it' "$T/curl.log" 2>/dev/null && bad "a reply's words left the computer" || ok "the agent's replies never sent anywhere"
 
 echo "— without Devin's data folder"

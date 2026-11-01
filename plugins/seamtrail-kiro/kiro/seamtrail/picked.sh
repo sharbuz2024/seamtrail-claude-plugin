@@ -1,6 +1,6 @@
 #!/bin/sh
 # SeamTrail for Kiro · the person picked this chat's project (SEAM-264; the Claude Code plugin's picked.sh, SEAM-228).
-# Kiro's PostToolUse hook after set_chat_project: the turn-end check (stop.sh) names that project from now on — or, for
+# Kiro's PostToolUse hook after set_chat_project: the save reminder (remind.sh) names that project from now on — or, for
 # "No project", stays quiet. Kiro's hook input may carry the call's arguments empty, and a refusal only in words, so the
 # outcome is read from SeamTrail's answer: "project": {"id": …} (a project) or "project": null ("No project"). An input
 # with no answer in it falls back to the call's own projectId, as in Claude Code. Nothing leaves the computer.

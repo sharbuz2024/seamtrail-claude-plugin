@@ -1,7 +1,6 @@
 #!/bin/sh
 # SeamTrail · a note was saved this turn (SEAM-253: the Claude Code plugin's saved.sh, for Gemini CLI's AfterTool):
-# remember, resolve, settle_question… was called, so the turn-end check (stop.sh) lets the agent finish without a
-# reminder. Called with "change" (ask_seamtrail, undo_change), only when SeamTrail really changed something —
+# remember, resolve, settle_question… was called, so the next message brings no save reminder (stop.sh, remind.sh). Called with "change" (ask_seamtrail, undo_change), only when SeamTrail really changed something —
 # ask_seamtrail's reply lists a step done, undo_change did not fail — because SeamTrail records that change itself, and
 # a note about it would only repeat it; a question to SeamTrail saves nothing. Only SeamTrail's own tools count: Gemini
 # CLI names a tool mcp_<server>_<tool>, so the hook's pattern alone would also catch another server's "resolve".

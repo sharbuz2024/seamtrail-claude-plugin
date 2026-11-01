@@ -6,7 +6,7 @@
 # answers with plain text, which Codex adds to the chat as developer context: the context of the project the person
 # picked for this chat, or, not picked yet, the question to ask at the first message ("Which SeamTrail project is this
 # chat for?" — the git remote and branch only order its options). It also keeps, on this computer, the chat's project,
-# so the turn-end check (stop.sh) names it — or stays quiet. Silent on any failure — a hook must never get in the way.
+# so the save reminder (remind.sh) names it — or stays quiet. Silent on any failure — a hook must never get in the way.
 
 token="$SEAMTRAIL_TOKEN"
 url="${SEAMTRAIL_URL:-https://mcp.seamtrail.com/mcp}"

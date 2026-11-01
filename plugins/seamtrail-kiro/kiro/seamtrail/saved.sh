@@ -1,8 +1,7 @@
 #!/bin/sh
 # SeamTrail for Kiro · a note was saved this turn (SEAM-264; the Claude Code plugin's saved.sh, SEAM-215). Kiro's
 # PostToolUse hook after remember, resolve, settle_question or widen_memory — a SeamTrail server's tool, known by its
-# name in Kiro's tool id (mcp_seamtrail_remember; @SeamTrail/remember in older Kiro CLIs) — marks the turn saved, so the
-# turn-end check (stop.sh) lets the agent finish without a reminder. Called with "change" (ask_seamtrail, undo_change),
+# name in Kiro's tool id (mcp_seamtrail_remember; @SeamTrail/remember in older Kiro CLIs) — marks the turn saved, so the next message brings no save reminder (stop.sh, remind.sh). Called with "change" (ask_seamtrail, undo_change),
 # only when SeamTrail really changed something — ask_seamtrail's reply lists a step done, undo_change did not fail —
 # because SeamTrail records that change itself, and a note about it would only repeat it; a question to SeamTrail saves
 # nothing. Nothing leaves the computer.

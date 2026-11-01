@@ -3,7 +3,7 @@
 # SeamTrail what this chat should know with the message the person just sent — what is new on the chat's work since it
 # last looked, and the latest still-true memory about the tickets the message names — and hands it to Gemini with the
 # message. Sends the chat id, the ticket numbers in the message and a search hint cut from the message on this computer first (hint.sh: no code blocks, secrets or credentials; SEAM-233); without node or python3, never its words. Adds nothing when there is
-# nothing to tell. The person's message also starts a new turn: nothing saved in it yet, not asked yet (stop.sh). And it
+# nothing to tell. The person's message also starts a new turn: nothing saved in it yet. And it
 # hands over the chat-start context Gemini CLI could not take at /clear or after compressing the chat (start.sh).
 # Silent on any failure — a hook must never get in the way.
 
@@ -11,10 +11,7 @@
 [ -n "$session" ] || exit 0
 
 prompt=$(printf '%s' "$input" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' | head -c 20000)
-# The turn-end reminder comes back as a prompt (Gemini CLI retries the turn with it): not the person's message, and the
-# turn goes on.
-case "$prompt" in *"$reminder"*) exit 0 ;; esac
-rm -f "$data/saved-$session" "$data/asked-$session"
+rm -f "$data/saved-$session"
 
 start=""
 [ -s "$data/start-$session" ] && start=$(cat "$data/start-$session")
@@ -51,9 +48,12 @@ if [ -n "$token" ]; then
   news="$answer"
 fi
 
-if [ -n "$start" ] && [ -n "$news" ]; then
-  printf '%s\n\n%s\n' "$start" "$news" | context BeforeAgent
-else
-  printf '%s%s\n' "$start" "$news" | context BeforeAgent
-fi
+# SEAM-215: the save reminder, when the last turn saved nothing, goes with this message (remind.sh).
+note=$(sh "$(dirname "$0")/remind.sh" "$data" "$session")
+text=""
+for part in "$start" "$news" "$note"; do
+  [ -n "$part" ] || continue
+  if [ -n "$text" ]; then text=$(printf '%s\n\n%s' "$text" "$part"); else text="$part"; fi
+done
+printf '%s\n' "$text" | context BeforeAgent
 exit 0

@@ -7,7 +7,7 @@
 # this chat or, not picked yet, the question the agent asks at the first message ("Which SeamTrail project is this chat
 # for?" — the git remote and branch only order its options). A Kiro hook cannot add the chat id to SeamTrail's tool
 # calls (Claude Code's guard.sh does), so the agent is also told the chat id, to add itself (.kiro/steering/seamtrail.md
-# says how). It keeps, on this computer, the chat's project, so the turn-end check (stop.sh) names it — or stays quiet.
+# says how). It keeps, on this computer, the chat's project, so the save reminder (remind.sh) names it — or stays quiet.
 # message.sh runs it at the first message when Kiro started a chat without it. Silent on any failure — a hook must never
 # get in the way.
 
@@ -24,7 +24,7 @@ mkdir -p "$data" 2>/dev/null || exit 0
 # What chats untouched for a month left here goes.
 find "$data" -type f -mtime +30 -exec rm -f {} + 2>/dev/null
 # A new (or resumed) chat starts clean: nothing saved yet, not asked yet, no project known yet.
-rm -f "$data/saved-$session" "$data/asked-$session" "$data/project-$session"
+rm -f "$data/saved-$session" "$data/remind-$session" "$data/project-$session"
 : > "$data/started-$session"
 
 [ -n "$token" ] || exit 0

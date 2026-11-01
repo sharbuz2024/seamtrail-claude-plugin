@@ -1,7 +1,6 @@
 #!/bin/sh
 # SeamTrail · a note was saved this turn, in Codex (SEAM-252; the Claude Code plugin's saved.sh, SEAM-215): remember,
-# resolve, settle_question… was called on a SeamTrail server, so the turn-end check (stop.sh) lets the agent finish
-# without a reminder. Called with "change" (ask_seamtrail, undo_change), only when SeamTrail really changed something —
+# resolve, settle_question… was called on a SeamTrail server, so the next message brings no save reminder (stop.sh, remind.sh). Called with "change" (ask_seamtrail, undo_change), only when SeamTrail really changed something —
 # ask_seamtrail's reply lists a step done, undo_change did not fail — because SeamTrail records that change itself, and
 # a note about it would only repeat it; a question to SeamTrail saves nothing. Codex hands the MCP call result as
 # tool_response (its text inside "content", or "structuredContent"). Nothing leaves the computer.

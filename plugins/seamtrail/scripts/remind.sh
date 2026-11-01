@@ -25,8 +25,10 @@ quiet="Your last answer was shown to your person: never repeat it. If none of th
 if [ "$project" = "ask" ]; then
   printf '%s\n' "SeamTrail: nothing was saved in your last turn. $what, call the SeamTrail remember tool now: $how. This folder belongs to more than one SeamTrail project: pass the projectId the conversation shows; if you cannot tell, leave it out and SeamTrail picks it, or answers with a short list to choose from. $quiet"
 else
-  # A project picked during the chat (picked.sh) is known by its id only.
+  # A project picked during the chat (picked.sh) is known by its id only. SeamTrail sends a name with a quote or a letter
+  # outside English in JSON's codes, meant for JSON: this is plain text, so then the id alone goes.
   label=""
+  case "$name" in *\\*) name="" ;; esac
   [ -n "$name" ] && label=" (the project “$name”)"
   printf '%s\n' "SeamTrail: nothing was saved in your last turn. $what, call the SeamTrail remember tool now with projectId $project$label: $how. This chat saves only into that project: if something belongs to another project, tell your person instead (they can switch this chat's project). $quiet"
 fi

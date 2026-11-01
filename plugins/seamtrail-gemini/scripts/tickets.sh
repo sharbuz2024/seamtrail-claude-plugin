@@ -9,10 +9,6 @@ role="$1"
 [ "$role" = person ] || [ "$role" = agent ] || exit 0
 . "$(dirname "$0")/common.sh"
 [ -n "$session" ] || exit 0
-# The turn-end reminder comes back as a prompt: it is not the person's message.
-if [ "$role" = person ]; then
-  case "$input" in *"$reminder"*) exit 0 ;; esac
-fi
 mkdir -p "$data" 2>/dev/null || exit 0
 # Nothing older than about a day stays on the computer either.
 find "$data" -name 'tickets-*.jsonl' -mtime +1 -exec rm -f {} + 2>/dev/null

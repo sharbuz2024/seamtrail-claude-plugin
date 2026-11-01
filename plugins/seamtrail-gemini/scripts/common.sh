@@ -6,7 +6,7 @@
 # address: SEAMTRAIL_URL — only a company that runs its own SeamTrail sets it — else SeamTrail's own.
 token="${SEAMTRAIL_TOKEN:-}"
 url="${SEAMTRAIL_URL:-https://mcp.seamtrail.com/mcp}"
-# Gemini CLI gives an extension's hooks no data folder of their own, so what they keep (the saved and asked markers,
+# Gemini CLI gives an extension's hooks no data folder of their own, so what they keep (the saved and reminder markers,
 # the chat's project, ticket numbers) lives in this computer's state folder — never inside the extension, which an
 # update replaces. Only this person can read it.
 data="${XDG_STATE_HOME:-$HOME/.local/state}/seamtrail/gemini"
@@ -55,6 +55,3 @@ context() {
   printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"%s"}}\n' "$1" "$text"
 }
 
-# The turn-end reminder (stop.sh) begins with these words. Gemini CLI sends it to the agent as the next prompt, so the
-# message hooks see it too and must tell it from the person's own message.
-reminder="SeamTrail: nothing was saved this turn."

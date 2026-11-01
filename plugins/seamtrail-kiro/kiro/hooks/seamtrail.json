@@ -33,7 +33,7 @@
     },
     {
       "name": "SeamTrail: project picked",
-      "description": "Keeps the SeamTrail project picked for this chat, for the turn-end reminder. Nothing leaves the computer.",
+      "description": "Keeps the SeamTrail project picked for this chat, for the save reminder. Nothing leaves the computer.",
       "trigger": "PostToolUse",
       "matcher": "[Ss]eam[Tt]rail.*[_/]set_chat_project$",
       "action": { "type": "command", "command": "sh .kiro/seamtrail/picked.sh" },
@@ -41,7 +41,7 @@
     },
     {
       "name": "SeamTrail: turn end",
-      "description": "When nothing was saved to SeamTrail this turn, asks the agent once to remember what was decided, into this chat's project.",
+      "description": "When nothing was saved to SeamTrail this turn, notes it on this computer, so the agent is reminded once with the next message. It never stops the agent.",
       "trigger": "Stop",
       "action": { "type": "command", "command": "sh .kiro/seamtrail/stop.sh" },
       "timeout": 5

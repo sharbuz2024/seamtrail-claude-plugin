@@ -10,19 +10,8 @@
     "preToolUse": [
       {"command": "sh \"${CURSOR_PLUGIN_ROOT}/scripts/guard.sh\"", "matcher": "MCP|Mcp|mcp", "timeout": 5}
     ],
-    "postToolUse": [
-      {"command": "sh \"${CURSOR_PLUGIN_ROOT}/scripts/saved.sh\"", "matcher": "MCP|Mcp|mcp", "timeout": 5},
-      {"command": "sh \"${CURSOR_PLUGIN_ROOT}/scripts/picked.sh\"", "matcher": "MCP|Mcp|mcp", "timeout": 5}
-    ],
-    "afterMCPExecution": [
-      {"command": "sh \"${CURSOR_PLUGIN_ROOT}/scripts/saved.sh\"", "timeout": 5},
-      {"command": "sh \"${CURSOR_PLUGIN_ROOT}/scripts/picked.sh\"", "timeout": 5}
-    ],
     "afterAgentResponse": [
       {"command": "sh \"${CURSOR_PLUGIN_ROOT}/scripts/tickets.sh\" agent", "timeout": 5}
-    ],
-    "stop": [
-      {"command": "sh \"${CURSOR_PLUGIN_ROOT:-$SEAMTRAIL_CURSOR_ROOT}/scripts/stop.sh\"", "timeout": 5, "loop_limit": 1}
     ]
   }
 }

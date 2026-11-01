@@ -1,6 +1,6 @@
 #!/bin/sh
 # SeamTrail · the person picked this chat's project (SEAM-253: the Claude Code plugin's picked.sh, for Gemini CLI's
-# AfterTool): set_chat_project was called, so the turn-end check (stop.sh) names that project from now on — or, for
+# AfterTool): set_chat_project was called, so the save reminder (remind.sh) names that project from now on — or, for
 # "No project", stays quiet. Nothing leaves the computer.
 
 . "$(dirname "$0")/common.sh"
