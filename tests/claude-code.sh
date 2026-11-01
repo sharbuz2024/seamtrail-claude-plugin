@@ -94,6 +94,9 @@ rm -f "$DATA/remind-$S"
 printf 'ask\n\n' > "$DATA/project-$S"
 stop > /dev/null
 remind | grep -q "more than one SeamTrail project" && echo "ok   remind: two projects matched (older SeamTrail) unchanged" || { echo "FAIL remind for two projects"; fail=1; }
+printf 'p-1\nPay \\"UPI\\" \\u00b7 Team\n' > "$DATA/project-$S"; rm -f "$DATA/saved-$S"
+stop > /dev/null
+remind | grep -q 'with projectId p-1: one note per thing' && echo "ok   remind: a name SeamTrail escaped never shows its codes: the id alone" || { echo "FAIL remind with an escaped name"; fail=1; }
 rm -f "$DATA/project-$S"
 out=$(stop)
 if [ -z "$out" ] && [ ! -f "$DATA/remind-$S" ] && [ -z "$(remind)" ]; then echo "ok   stop: no project → never reminds"; else echo "FAIL reminded without a project"; fail=1; fi
