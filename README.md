@@ -28,7 +28,7 @@ This repository also holds SeamTrail's plugins for Codex, Gemini CLI, Devin CLI,
 
    This turns the plugin on for the repository in `.claude/settings.json`: commit that file, and each teammate runs the same install command once. For yourself only, leave out `--scope project`.
 
-3. Paste the token when Claude Code asks for it. It is kept in your computer's secure store.
+3. The install in a terminal does not ask for the token. Start Claude Code with `claude` and type `/plugin configure seamtrail@seamtrail`. Paste the token under SeamTrail token and choose Save configuration. It is kept in your computer's secure store. To change it later, type the same line. Then type `/exit` and start Claude Code again.
 
 ## Update
 
