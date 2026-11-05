@@ -1,6 +1,6 @@
 #!/bin/sh
 # SeamTrail · the person picked this chat's project, in the Devin CLI (SEAM-254: the Claude Code plugin's picked.sh —
-# SEAM-228 — in Devin's hook format): set_chat_project was called, so the save reminder (remind.sh) names that project
+# SEAM-228 — in Devin's hook format): set_chat_project (or create_project, SEAM-300) was called, so the save reminder (remind.sh) names that project
 # from now on — or, for "No project", stays quiet. Nothing leaves the computer.
 
 . "$(dirname "$0")/lib.sh"

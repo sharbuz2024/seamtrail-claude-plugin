@@ -36,7 +36,7 @@ if command -v jq >/dev/null 2>&1; then
       else null end;
     def says: ascii_downcase | contains("seamtrail");
     ["list_projects", "project_context", "search_memory", "remember", "ask_seamtrail", "ticket_details",
-     "set_chat_project", "resolve", "settle_question", "search", "fetch", "get_project", "get_chain",
+     "set_chat_project", "create_project", "resolve", "settle_question", "search", "fetch", "get_project", "get_chain",
      "widen_memory", "check_connection", "undo_change"] as $tools
     | ["search", "fetch", "list_projects", "get_project", "search_memory"] as $shared
     | ([.conversation_id, .session_id] | map(str) | map(select(. != "")) | .[0] // "") as $chat
@@ -76,7 +76,7 @@ if command -v node >/dev/null 2>&1; then
       try {
         const file = process.argv[1];
         const tools = ["list_projects", "project_context", "search_memory", "remember", "ask_seamtrail", "ticket_details",
-          "set_chat_project", "resolve", "settle_question", "search", "fetch", "get_project", "get_chain",
+          "set_chat_project", "create_project", "resolve", "settle_question", "search", "fetch", "get_project", "get_chain",
           "widen_memory", "check_connection", "undo_change"];
         const shared = ["search", "fetch", "list_projects", "get_project", "search_memory"];
         const str = (v) => (typeof v === "string" ? v : "");
@@ -135,7 +135,7 @@ if [ -n "$py" ]; then
 import json, re, sys
 
 TOOLS = ["list_projects", "project_context", "search_memory", "remember", "ask_seamtrail", "ticket_details",
-         "set_chat_project", "resolve", "settle_question", "search", "fetch", "get_project", "get_chain",
+         "set_chat_project", "create_project", "resolve", "settle_question", "search", "fetch", "get_project", "get_chain",
          "widen_memory", "check_connection", "undo_change"]
 SHARED = ["search", "fetch", "list_projects", "get_project", "search_memory"]
 

@@ -37,7 +37,7 @@
         ]
       },
       {
-        "matcher": "^mcp_.+_set_chat_project$",
+        "matcher": "^mcp_.+_(set_chat_project|create_project)$",
         "hooks": [
           {"name": "seamtrail-picked", "type": "command", "command": "sh \"${extensionPath}/scripts/picked.sh\"", "timeout": 5000}
         ]

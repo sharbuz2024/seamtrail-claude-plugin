@@ -35,7 +35,7 @@
       "name": "SeamTrail: project picked",
       "description": "Keeps the SeamTrail project picked for this chat, for the save reminder. Nothing leaves the computer.",
       "trigger": "PostToolUse",
-      "matcher": "[Ss]eam[Tt]rail.*[_/]set_chat_project$",
+      "matcher": "[Ss]eam[Tt]rail.*[_/](set_chat_project|create_project)$",
       "action": { "type": "command", "command": "sh .kiro/seamtrail/picked.sh" },
       "timeout": 5
     },

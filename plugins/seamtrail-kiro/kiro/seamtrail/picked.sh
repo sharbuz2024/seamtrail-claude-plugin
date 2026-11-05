@@ -1,6 +1,6 @@
 #!/bin/sh
 # SeamTrail for Kiro · the person picked this chat's project (SEAM-264; the Claude Code plugin's picked.sh, SEAM-228).
-# Kiro's PostToolUse hook after set_chat_project: the save reminder (remind.sh) names that project from now on — or, for
+# Kiro's PostToolUse hook after set_chat_project (or create_project, SEAM-300): the save reminder (remind.sh) names that project from now on — or, for
 # "No project", stays quiet. Kiro's hook input may carry the call's arguments empty, and a refusal only in words, so the
 # outcome is read from SeamTrail's answer: "project": {"id": …} (a project) or "project": null ("No project"). An input
 # with no answer in it falls back to the call's own projectId, as in Claude Code. Nothing leaves the computer.
@@ -11,7 +11,7 @@ session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"
 case "$session" in *[!A-Za-z0-9_-]*) session="" ;; esac
 [ -n "$session" ] || exit 0
 tool=$(printf '%s' "$input" | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/' | tr 'A-Z' 'a-z')
-case "$tool" in *seamtrail*set_chat_project) ;; *) exit 0 ;; esac
+case "$tool" in *seamtrail*set_chat_project|*seamtrail*create_project) ;; *) exit 0 ;; esac
 # Refused (a project the person is not on, or both answers at once): nothing changed.
 printf '%s' "$input" | grep -q '"isError"[[:space:]]*:[[:space:]]*true' && exit 0
 printf '%s' "$input" | grep -q '"success"[[:space:]]*:[[:space:]]*false' && exit 0

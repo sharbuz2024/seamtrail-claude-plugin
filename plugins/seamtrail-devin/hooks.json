@@ -36,7 +36,7 @@
       ]
     },
     {
-      "matcher": "mcp__.*__set_chat_project$",
+      "matcher": "mcp__.*__(set_chat_project|create_project)$",
       "hooks": [
         {"type": "command", "command": "sh \"$DEVIN_PLUGIN_ROOT/scripts/picked.sh\"", "timeout": 5}
       ]

@@ -1,5 +1,5 @@
 #!/bin/sh
-# SeamTrail · the person picked this chat's project (SEAM-228): set_chat_project was called, so the turn-end check
+# SeamTrail · the person picked this chat's project (SEAM-228): set_chat_project was called — or create_project (SEAM-300), which makes a project and sets the chat to it — so the turn-end check
 # (stop.sh) names that project from now on — or, for "No project", stays quiet. Nothing leaves the computer.
 
 input=$(cat)
