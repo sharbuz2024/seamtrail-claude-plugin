@@ -1,6 +1,6 @@
 {
   "name": "seamtrail",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SeamTrail, your team's shared memory, in Codex: each chat asks once which SeamTrail project it is for, then gets that project's context, the news that touches its own work, and at every message the latest memory about the tickets you name — and what each message is about — from a hint cut from that message on your computer, with no code, secrets or credentials — saves only into it, and is reminded with the next message to save what was decided.",
   "keywords": ["memory", "decisions", "project context", "team"],
   "skills": "./skills/",
