@@ -155,9 +155,9 @@ out, log = hook("fix SEAM-210 with password=hunter2 now", f"{bin_}:{syspath}")
 body = json.loads(log.split("BODY:", 1)[1].splitlines()[0]) if "BODY:" in log else {}
 check("message.sh: POSTs {chat, messageId, tickets, hint} in the body, never in the address", body.get("chat") == "c-9" and len(body.get("messageId", "")) >= 8 and body.get("tickets") == "SEAM-210" and "fix SEAM-210" in body.get("hint", "") and "hint=" not in log.split("BODY:")[0], log)
 check("message.sh: the secret is not in what was sent", "hunter2" not in log, log)
-check("message.sh: SeamTrail's answer goes to Claude", out == "news for the chat", out)
+check("message.sh: SeamTrail's answer goes to Claude", out.split("\n")[0] == "news for the chat", out)
 out, log = hook("fix SEAM-210", f"{bin_}:{syspath}", code="404")
-check("message.sh: an older SeamTrail (404) is asked the old way: chat id, message id and ticket numbers only", log.count("ARGS:") == 2 and "-G" in log.splitlines()[-1] and "tickets=SEAM-210" in log.splitlines()[-1] and "messageId=" in log.splitlines()[-1] and out == "old way answer", log)
+check("message.sh: an older SeamTrail (404) is asked the old way: chat id, message id and ticket numbers only", log.count("ARGS:") == 2 and "-G" in log.splitlines()[-1] and "tickets=SEAM-210" in log.splitlines()[-1] and "messageId=" in log.splitlines()[-1] and out.split("\n")[0] == "old way answer", log)
 # Without node or python3: a PATH with only the basics (sh, sed, grep, curl stand-in).
 basic = f"{T}/basic"
 os.makedirs(basic, exist_ok=True)

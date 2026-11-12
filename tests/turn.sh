@@ -119,7 +119,7 @@ for name in tools:
     body = posts[0]["body"] if posts else {}
     mid = body.get("messageId", "")
     check(f"{name}: message.sh sends a new message id with the message", bool(re.fullmatch(r"[a-z0-9-]{36}", mid)), json.dumps(body))
-    check(f"{name}: message.sh still hands Claude what SeamTrail answered", out == "news", out)
+    check(f"{name}: message.sh still hands Claude what SeamTrail answered", out.split("\n")[0] == "news", out)
     check(f"{name}: no secret in what message.sh sent", SECRET not in log(), log())
     t = turn_file(chat)
     check(f"{name}: the id and the cleaned hint wait on this computer", t.get("messageId") == mid and "PAY-4" in t.get("hint", "") and SECRET not in json.dumps(t), json.dumps(t))

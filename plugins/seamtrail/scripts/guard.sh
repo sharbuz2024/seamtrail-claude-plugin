@@ -17,6 +17,11 @@
 # SEAM-233 (founder 2026-10-25: "build the plugin side on a branch"): the id of the person's latest message (made by
 # message.sh, waiting in turn-<chat>.json) goes with the call too, as messageId, so a note saved or a change made is
 # tied to that message. SeamTrail takes it out before the tool runs, like the chat id.
+#
+# SEAM-323 (founder 2026-11-12: "yes make the ticket"): message.sh tells Claude, with each message, what this guard adds,
+# and Claude puts it into its SeamTrail calls itself, so in Claude Code's auto mode the guard changes nothing and the
+# call is not refused for it. The guard still sets every value: in place, so a call already holding the right ones comes
+# out the same; a ticket list or a message id this computer does not have is taken out.
 
 input=$(cat)
 prefix='mcp__plugin_seamtrail_seamtrail__'
@@ -43,14 +48,18 @@ if command -v node >/dev/null 2>&1; then
         const server = String((d.mcp_server && d.mcp_server.name) || "").toLowerCase();
         if (!d.session_id || !(String(d.tool_name || "").startsWith(p) || server.includes("seamtrail"))) return;
         const updatedInput = Object.assign({}, d.tool_input || {}, { chatId: d.session_id });
+        // SEAM-323: a value set in place keeps its place, so a call already holding the right values comes out the same;
+        // a list or an id this computer does not have is taken out, never kept from Claude.
+        let tickets = "";
         if (file) {
           try {
             const keys = new Set();
             for (const l of require("fs").readFileSync(file, "utf8").split("\n").filter(Boolean))
               for (const k of JSON.parse(l).k || []) keys.add(k);
-            if (keys.size) updatedInput.chatTickets = [...keys].sort().join(",");
+            tickets = [...keys].sort().join(",");
           } catch (e) {}
         }
+        if (tickets) updatedInput.chatTickets = tickets; else delete updatedInput.chatTickets;
         // SEAM-233: the workingOn line, cleaned by hint.js before it leaves; if that fails, it does not leave.
         if (typeof updatedInput.workingOn === "string") {
           try {
@@ -61,12 +70,14 @@ if command -v node >/dev/null 2>&1; then
           } catch (e) { delete updatedInput.workingOn; }
         }
         // SEAM-233: the latest message id, so what this call saves is tied to that message.
+        let mid = "";
         if (turn) {
           try {
             const m = String(JSON.parse(require("fs").readFileSync(turn, "utf8")).messageId || "");
-            if (/^[A-Za-z0-9_-]{8,100}$/.test(m)) updatedInput.messageId = m;
+            if (/^[A-Za-z0-9_-]{8,100}$/.test(m)) mid = m;
           } catch (e) {}
         }
+        if (mid) updatedInput.messageId = mid; else delete updatedInput.messageId;
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput } }));
       } catch (e) {}
     });' "$prefix" "$numbers" "$here" "$turn" 2>/dev/null
@@ -87,14 +98,18 @@ server = str((d.get("mcp_server") or {}).get("name") or "").lower()
 if d.get("session_id") and (str(d.get("tool_name") or "").startswith(p) or "seamtrail" in server):
     i = dict(d.get("tool_input") or {})
     i["chatId"] = d["session_id"]
+    # SEAM-323: set in place, or taken out when this computer has none (see the node part above).
+    keys = []
     if len(sys.argv) > 2 and sys.argv[2]:
         try:
             with open(sys.argv[2]) as f:
                 keys = sorted({k for l in f if l.strip() for k in json.loads(l).get("k", [])})
-            if keys:
-                i["chatTickets"] = ",".join(keys)
         except Exception:
-            pass
+            keys = []
+    if keys:
+        i["chatTickets"] = ",".join(keys)
+    else:
+        i.pop("chatTickets", None)
     # SEAM-233: the workingOn line, cleaned by hint.py before it leaves; if that fails, it does not leave.
     if isinstance(i.get("workingOn"), str):
         try:
@@ -111,14 +126,19 @@ if d.get("session_id") and (str(d.get("tool_name") or "").startswith(p) or "seam
         except Exception:
             i.pop("workingOn", None)
     # SEAM-233: the latest message id, so what this call saves is tied to that message.
+    mid = ""
     if len(sys.argv) > 4 and sys.argv[4]:
         try:
             with open(sys.argv[4]) as f:
                 m = str(json.load(f).get("messageId") or "")
             if re.fullmatch(r"[A-Za-z0-9_-]{8,100}", m):
-                i["messageId"] = m
+                mid = m
         except Exception:
             pass
+    if mid:
+        i["messageId"] = mid
+    else:
+        i.pop("messageId", None)
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": i}}))
 ' "$prefix" "$numbers" "$here" "$turn" 2>/dev/null
   exit 0
@@ -137,8 +157,8 @@ if command -v jq >/dev/null 2>&1; then
     | (($turn[0].messageId? // "") | tostring) as $mid
     | {hookSpecificOutput: {hookEventName: "PreToolUse",
         updatedInput: ((.tool_input // {} | del(.workingOn)) + {chatId: .session_id}
-          + (if $keys != "" then {chatTickets: $keys} else {} end)
-          + (if ($mid | test("^[A-Za-z0-9_-]{8,100}$")) then {messageId: $mid} else {} end))}}' 2>/dev/null
+          | if $keys != "" then .chatTickets = $keys else del(.chatTickets) end
+          | if ($mid | test("^[A-Za-z0-9_-]{8,100}$")) then .messageId = $mid else del(.messageId) end)}}' 2>/dev/null
   exit 0
 fi
 
