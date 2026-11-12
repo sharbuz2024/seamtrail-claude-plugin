@@ -22,6 +22,8 @@ input=$(cat)
 session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 [ -n "$session" ] || exit 0
 turn="$data/turn-$session.json"
+# SEAM-325: SeamTrail is off in this chat: the message's end is not sent either.
+if [ -f "$data/off-$session" ]; then rm -f "$turn"; exit 0; fi
 [ -s "$turn" ] || exit 0
 # A second stop for the same message (a turn-end hook made Claude go on): not the real answer.
 printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0

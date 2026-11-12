@@ -32,6 +32,14 @@ session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"
 [ -n "$session" ] || exit 0
 here=$(dirname "$0")
 
+# SEAM-325: its person picked "No SeamTrail" for this chat: nothing of the message is kept or sent, and Claude hears
+# only that (off.sh).
+if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -f "$CLAUDE_PLUGIN_DATA/off-$session" ]; then
+  rm -f "$CLAUDE_PLUGIN_DATA/turn-$session.json"
+  sh "$here/off.sh" "$session"
+  exit 0
+fi
+
 # node, else python3 — but not macOS's stand-in without the developer tools, which would open an install window.
 js=""
 command -v node >/dev/null 2>&1 && js=node

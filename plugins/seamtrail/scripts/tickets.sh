@@ -12,6 +12,8 @@ data="$CLAUDE_PLUGIN_DATA"
 input=$(cat)
 session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 [ -n "$session" ] || exit 0
+# SEAM-325: SeamTrail is off in this chat: no ticket numbers are kept for it.
+[ -f "$data/off-$session" ] && exit 0
 mkdir -p "$data" 2>/dev/null || exit 0
 # Nothing older than about a day stays on the computer either.
 find "$data" -name 'tickets-*.jsonl' -mtime +1 -exec rm -f {} + 2>/dev/null

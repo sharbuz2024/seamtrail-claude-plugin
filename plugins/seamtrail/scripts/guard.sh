@@ -28,13 +28,20 @@ prefix='mcp__plugin_seamtrail_seamtrail__'
 # SEAM-233: the ticket numbers tickets.sh keeps on this computer (numbers only) go with the call as chatTickets.
 session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 here=$(dirname "$0")
+# SEAM-325: its person picked "No SeamTrail" for this chat: a SeamTrail call goes as Claude made it, with nothing of the
+# chat added — except set_chat_project, which needs the chat id (and only that) to turn SeamTrail back on here.
+off=""
+if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -f "$CLAUDE_PLUGIN_DATA/off-$session" ]; then
+  printf '%s' "$input" | grep -q '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*__set_chat_project"' || exit 0
+  off=1
+fi
 numbers=""
-if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl" ]; then
+if [ -z "$off" ] && [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl" ]; then
   numbers="$CLAUDE_PLUGIN_DATA/tickets-$session.jsonl"
 fi
 # SEAM-233: the latest message's id, from message.sh.
 turn=""
-if [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/turn-$session.json" ]; then
+if [ -z "$off" ] && [ -n "$CLAUDE_PLUGIN_DATA" ] && [ -n "$session" ] && [ -s "$CLAUDE_PLUGIN_DATA/turn-$session.json" ]; then
   turn="$CLAUDE_PLUGIN_DATA/turn-$session.json"
 fi
 

@@ -17,6 +17,11 @@ session=$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"
 title=$(printf '%s' "$input" | grep -o '"session_title"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
 # A new (or resumed) chat starts clean: nothing saved yet, no project known yet.
 if [ -n "$data" ] && [ -n "$session" ]; then rm -f "$data/saved-$session" "$data/project-$session"; fi
+# SEAM-325: its person picked "No SeamTrail" for this chat: nothing is sent, and Claude hears only that.
+if [ -n "$data" ] && [ -n "$session" ] && [ -f "$data/off-$session" ]; then
+  sh "$(dirname "$0")/off.sh" "$session"
+  exit 0
+fi
 
 [ -z "$token" ] && exit 0
 dir="${CLAUDE_PROJECT_DIR:-$PWD}"
@@ -36,6 +41,14 @@ if curl -s -f -G --max-time 10 "${url%/}/hook/start" \
   --data-urlencode "folder=$dir" \
   --data-urlencode "version=$version" \
   -D "$tmp/headers" -o "$tmp/body" 2>/dev/null; then
+  # SEAM-325: SeamTrail says the chat is off (picked on another computer, or a named chat after /clear): it is kept off
+  # here too, and Claude hears the line made on this computer.
+  if [ -n "$data" ] && [ -n "$session" ] && grep -qi '^x-seamtrail-off:[[:space:]]*1' "$tmp/headers"; then
+    mkdir -p "$data" && : > "$data/off-$session"
+    sh "$(dirname "$0")/off.sh" "$session"
+    rm -rf "$tmp"
+    exit 0
+  fi
   cat "$tmp/body"
   project=$(grep -i '^x-seamtrail-project:' "$tmp/headers" | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')
   name=$(grep -i '^x-seamtrail-project-name:' "$tmp/headers" | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')

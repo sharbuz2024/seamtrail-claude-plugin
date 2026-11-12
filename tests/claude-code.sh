@@ -257,6 +257,112 @@ check("hooks.json: message.sh keeps the tickets itself; tickets.sh no longer run
 raise SystemExit(1 if bad else 0)
 PY
 
+# SEAM-325 (founder 2026-11-13: "if selected no .. it will not use in that chat"): "No SeamTrail" marks the chat off on
+# this computer (picked.sh), and every hook stays quiet in it: nothing is sent, nothing is kept for it, and Claude hears
+# only the off line. A project or "No project" turns it back on.
+python3 -I - <<'PY' || fail=1
+import json, os, subprocess
+P, D = os.environ["P"], os.environ["DATA"]
+bad = 0
+def check(label, cond, info=""):
+    global bad
+    print(("ok   " if cond else "FAIL ") + label + ("" if cond else f" — {info}"))
+    bad |= not cond
+def which(t):
+    r = subprocess.run(["sh", "-c", f"command -v {t}"], capture_output=True, text=True).stdout.strip()
+    return r if r.startswith("/") else None
+stub = os.path.join(D, "stub-325")
+os.makedirs(stub, exist_ok=True)
+with open(os.path.join(stub, "curl"), "w") as f:  # logs each call; with CURL_OFF set, SeamTrail says the chat is off
+    f.write('#!/bin/sh\nprintf "call\\n" >> "$CURL_LOG"\nprev=""; out=""; hdr=""\n'
+            'for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; [ "$prev" = "-D" ] && hdr="$a"; prev="$a"; done\n'
+            'if [ -n "$hdr" ]; then printf "HTTP/1.1 200 OK\\r\\n" > "$hdr"; [ -n "$CURL_OFF" ] && printf "x-seamtrail-off: 1\\r\\n" >> "$hdr"; fi\n'
+            'if [ -n "$out" ]; then printf "server context" > "$out"; else printf "server context"; fi\n'
+            'case " $* " in *" -w "*) printf 200 ;; esac\nexit 0\n')
+os.chmod(os.path.join(stub, "curl"), 0o755)
+basics = ["sh", "cat", "grep", "sed", "head", "dirname", "uname", "xcode-select", "printf", "mktemp", "rm", "tr",
+          "find", "mkdir", "sort", "paste", "uuidgen", "mv", "git"]
+tool = next((t for t in ("node", "python3") if which(t)), None)
+path = os.path.join(D, "path325")
+os.makedirs(path)
+for t in basics + ([tool] if tool else []):
+    w = which(t)
+    if w:
+        os.symlink(w, os.path.join(path, t))
+os.symlink(os.path.join(stub, "curl"), os.path.join(path, "curl"))
+data = os.path.join(D, "data325")
+os.makedirs(data)
+log = os.path.join(data, "curl.log")
+chat = "chat-325-0001"
+def run(script, payload, args=(), **env):
+    e = {"PATH": path, "HOME": D, "TMPDIR": D, "CLAUDE_PLUGIN_DATA": data, "CURL_LOG": log, "SEAMTRAIL_TOKEN": "tok-1",
+         "CLAUDE_PROJECT_DIR": D}
+    e.update({k: v for k, v in env.items() if v is not None})
+    return subprocess.run(["sh", f"{P}/scripts/{script}", *args], input=json.dumps(payload), capture_output=True,
+                          text=True, env=e, timeout=30).stdout
+def sent():
+    n = open(log).read().count("call") if os.path.exists(log) else 0
+    if os.path.exists(log):
+        os.remove(log)
+    return n
+def touch(name):
+    open(os.path.join(data, name), "w").write("{}\n")
+def there(name):
+    return os.path.exists(os.path.join(data, name))
+pick = lambda tool_input, response: {"session_id": chat, "tool_name": "mcp__plugin_seamtrail_seamtrail__set_chat_project",
+                                     "tool_input": tool_input, "tool_response": response}
+
+for name in (f"project-{chat}", f"turn-{chat}.json", f"tickets-{chat}.jsonl", f"remind-{chat}"):
+    touch(name)
+run("picked.sh", pick({"off": True}, {"structuredContent": {"off": True, "saved": "SeamTrail is off"}}))
+check("picked.sh: \"No SeamTrail\" marks the chat off, and what this computer kept for it goes",
+      there(f"off-{chat}") and not any(there(n) for n in (f"project-{chat}", f"turn-{chat}.json", f"tickets-{chat}.jsonl", f"remind-{chat}")),
+      str(os.listdir(data)))
+touch(f"turn-{chat}.json")
+out = run("message.sh", {"session_id": chat, "prompt": "write me a personal note about PAY-4"})
+check("message.sh: off → Claude hears only the off line, with the chat id to turn it back on",
+      out.startswith("SeamTrail is off in this chat") and f'set_chat_project with chatId "{chat}"' in out
+      and "SeamTrail fields" not in out, out)
+check("message.sh: off → nothing is sent, no ticket kept, the message's id gone",
+      sent() == 0 and not there(f"tickets-{chat}.jsonl") and not there(f"turn-{chat}.json"), str(os.listdir(data)))
+out = run("start.sh", {"session_id": chat, "source": "resume"})
+check("start.sh: off → the off line, and nothing is sent", out.startswith("SeamTrail is off in this chat") and sent() == 0, out)
+touch(f"turn-{chat}.json")
+run("turn.sh", {"session_id": chat, "hook_event_name": "Stop", "last_assistant_message": "Done, PAY-4 is fixed."})
+check("turn.sh: off → the message's end is not sent", sent() == 0 and not there(f"turn-{chat}.json"))
+run("tickets.sh", {"session_id": chat, "last_assistant_message": "PAY-4"}, ["claude"])
+check("tickets.sh: off → no ticket numbers kept", not there(f"tickets-{chat}.jsonl"))
+if tool:
+    def guard(tool_name, tool_input):
+        out = run("guard.sh", {"session_id": chat, "tool_name": tool_name, "tool_input": tool_input})
+        return json.loads(out)["hookSpecificOutput"]["updatedInput"] if out.strip() else None
+    open(os.path.join(data, f"tickets-{chat}.jsonl"), "w").write('{"r":"person","n":5,"k":["PAY-4"]}\n')
+    open(os.path.join(data, f"turn-{chat}.json"), "w").write('{"messageId":"0f8e5c1a-1111-4222-8333-944455556666"}\n')
+    check(f"guard ({tool}): off → another SeamTrail call goes as Claude made it",
+          guard("mcp__plugin_seamtrail_seamtrail__remember", {"content": "x"}) is None)
+    back = {"projectId": "11111111-2222-4333-8444-555555555555", "chatId": chat}
+    check(f"guard ({tool}): off → set_chat_project with the chat id from the off line comes out the same",
+          json.dumps(guard("mcp__plugin_seamtrail_seamtrail__set_chat_project", back)) == json.dumps(back))
+    got = guard("mcp__plugin_seamtrail_seamtrail__set_chat_project", {"none": True}) or {}
+    check(f"guard ({tool}): off → set_chat_project gets the chat id only, no tickets or message id",
+          got == {"none": True, "chatId": chat}, json.dumps(got))
+    os.remove(os.path.join(data, f"tickets-{chat}.jsonl"))
+    os.remove(os.path.join(data, f"turn-{chat}.json"))
+run("picked.sh", pick({"projectId": "11111111-2222-4333-8444-555555555555"},
+                      {"structuredContent": {"project": {"id": "11111111-2222-4333-8444-555555555555", "name": "Web"}}}))
+check("picked.sh: a project turns SeamTrail back on", not there(f"off-{chat}") and there(f"project-{chat}"))
+out = run("start.sh", {"session_id": chat, "source": "startup"})
+check("start.sh: back on → SeamTrail's own words again", out == "server context" and sent() == 1, out)
+# Off on another computer, or a named chat after /clear: SeamTrail says so at the chat's start, and it is kept here.
+other = "chat-325-0002"
+out = run("start.sh", {"session_id": other, "source": "clear"}, CURL_OFF="1")
+check("start.sh: SeamTrail says the chat is off → kept off here, and Claude hears the line made here",
+      there(f"off-{other}") and out.startswith("SeamTrail is off in this chat") and f'chatId "{other}"' in out
+      and "server context" not in out, out)
+check("off.sh: an id that is not plain gets no line", run("off.sh", {}, ['bad"id']) == "")
+raise SystemExit(1 if bad else 0)
+PY
+
 python3 -m json.tool "$P/hooks/hooks.json" > /dev/null && python3 -m json.tool "$P/.claude-plugin/plugin.json" > /dev/null && echo "ok   hooks.json and plugin.json are valid JSON" || fail=1
 rm -rf "$DATA"
 [ $fail = 0 ] && echo "ALL PASSED" || echo "SOME FAILED"
